@@ -81,7 +81,8 @@ function NftAccount() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const eventSymbolFromParam = params.get("eventsymbol") || "TEN";
+    const eventSymbolFromParam =
+      params.get("eventsymbol") || process.env.REACT_APP_NFT_SYMBOL;
 
     if (eventSymbolFromParam) {
       // 로컬 스토리지에서 기존 값 가져오기
