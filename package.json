@@ -7,6 +7,8 @@
     "@types/node": "^16.7.13",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "classnames": "^2.5.1",
+    "framer-motion": "^12.5.0",
     "qr-scanner": "^1.4.2",
     "qrcode.react": "latest",
     "react": "^19.0.0",
@@ -46,6 +48,8 @@
     "@eslint/js": "^9.18.0",
     "@types/qrcode.react": "^3.0.0",
     "@types/react-router-dom": "^5.3.3",
-    "env-cmd": "^10.1.0"
+    "env-cmd": "^10.1.0",
+    "sass": "^1.85.1",
+    "typescript-plugin-css-modules": "^5.1.0"
   }
 }

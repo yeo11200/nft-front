@@ -1,8 +1,9 @@
 import React from "react";
 import { Route, Routes, BrowserRouter } from "react-router-dom";
-import TicketManager from "./component/TicketManager";
-import NftAccount from "./component/NftAccount";
-import TicketVerifier from "./component/TicketVerifier";
+import TicketManager from "./feat-component/TicketManager";
+import NftAccount from "./feat-component/NftAccount";
+import TicketVerifier from "./feat-component/TicketVerifier";
+import { SpeechProvider } from "./contexts/SpeechContext";
 
 export type AccountResponse = {
   status: string;
@@ -21,13 +22,15 @@ export type ErrorResponse = {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<NftAccount />} />
-        <Route path="/tickets" element={<TicketManager />} />
-        <Route path="/verify" element={<TicketVerifier />} />
-      </Routes>
-    </BrowserRouter>
+    <SpeechProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<NftAccount />} />
+          <Route path="/tickets" element={<TicketManager />} />
+          <Route path="/verify" element={<TicketVerifier />} />
+        </Routes>
+      </BrowserRouter>
+    </SpeechProvider>
   );
 }
 
