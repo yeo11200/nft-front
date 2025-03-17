@@ -1,0 +1,110 @@
+.historyContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #2d3436;
+}
+
+.transactionCard {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dateTime {
+  color: #636e72;
+  font-size: 0.9rem;
+}
+
+.participants {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.participant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.label {
+  color: #636e72;
+  font-size: 0.9rem;
+}
+
+.value {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.copyButton {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.amount {
+  font-size: 1.2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &.positive {
+    color: #2ecc71;
+  }
+
+  &.negative {
+    color: #e74c3c;
+  }
+}
+
+.krw {
+  font-size: 0.9rem;
+  color: #636e72;
+  font-weight: normal;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #636e72;
+}
+
+@media (max-width: 480px) {
+  .historyContainer {
+    padding: 12px;
+  }
+
+  .transactionCard {
+    padding: 12px;
+  }
+
+  .amount {
+    font-size: 1.1rem;
+  }
+}

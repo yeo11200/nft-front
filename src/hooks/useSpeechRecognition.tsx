@@ -20,7 +20,7 @@ export type UseSpeechRecognitionOptions = {
   maxAlternatives?: number;
   continuous?: boolean;
   autoStart?: boolean;
-  onResult?: (result: string) => void;
+  onResult?: (result: string) => Promise<void>;
 };
 
 /**
@@ -84,6 +84,8 @@ const useSpeechRecognition = ({
   const restartTimerRef = useRef<NodeJS.Timeout>();
   // 무음 감지 타이머 ref (음성이 없는 상태가 지속되는지 체크)
   const silenceTimerRef = useRef<NodeJS.Timeout>();
+
+  const isApiRef = useRef<boolean>(false);
 
   /**
    * 음성 인식 시작 함수
@@ -175,7 +177,6 @@ const useSpeechRecognition = ({
       setError("이 브라우저는 SpeechRecognition API를 지원하지 않습니다.");
       return;
     }
-
     // recognition 인스턴스 생성 및 설정
     const recognition = new SpeechRecognition();
     recognition.lang = lang; // 인식 언어 설정
@@ -188,12 +189,16 @@ const useSpeechRecognition = ({
      * 마이크 활성화 및 인식 시작 시 호출
      */
     recognition.onstart = () => {
-      isRecognizing.current = true;
-      console.log("Recognition started");
+      if (!isApiRef.current) {
+        setTranscript("");
+        setIsActive(false);
+        isRecognizing.current = true;
+        console.log("Recognition started");
 
-      // 이전 무음 감지 타이머 제거
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
+        // 이전 무음 감지 타이머 제거
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+        }
       }
     };
 
@@ -203,12 +208,13 @@ const useSpeechRecognition = ({
      */
     recognition.onend = () => {
       console.log("Recognition ended");
-
+      console.log("isApiRef.current: recognition.onend", isApiRef.current);
       console.log("isRecognizing", isRecognizing.current);
       // 의도적인 중지가 아닐 경우 자동으로 재시작
       if (isRecognizing.current) {
         restartTimerRef.current = setTimeout(() => {
           try {
+            isApiRef.current = false;
             recognition.start();
           } catch (e) {
             console.error("Restart failed:", e);
@@ -229,37 +235,60 @@ const useSpeechRecognition = ({
      * results.length: 전체 결과 개수
      */
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      console.log("onresult", event);
-      let currentTranscript = "";
+      if (!isApiRef.current) {
+        console.log("onresult", event);
+        console.log("isApiRef.current:recognition.onresult", isApiRef.current);
+        let currentTranscript = "";
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i][0];
-        currentTranscript += result.transcript;
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i][0];
+          currentTranscript += result.transcript;
 
-        // 음성이 감지되면 active 상태로 변경
-        if (result.confidence > 0) {
-          setIsActive(true);
-          lastSpeechTimestampRef.current = Date.now();
+          // 음성이 감지되면 active 상태로 변경
+          if (result.confidence > 0) {
+            setIsActive(true);
+            lastSpeechTimestampRef.current = Date.now();
+          }
+
+          if (event.results[i].isFinal && result.transcript.trim()) {
+            setTranscripts((prev) => [...prev, result.transcript.trim()]);
+          }
         }
 
-        if (event.results[i].isFinal && result.transcript.trim()) {
-          setTranscripts((prev) => [...prev, result.transcript.trim()]);
+        setTranscript(currentTranscript);
+
+        // 무음 감지 타이머 재설정
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
         }
+
+        silenceTimerRef.current = setTimeout(async () => {
+          if (Date.now() - lastSpeechTimestampRef.current > 1000) {
+            // 2초 동안 음성이 없으면
+            setIsActive(false); // UI 비활성화
+
+            if (onResult && currentTranscript) {
+              isApiRef.current = true;
+              console.log("API 호출 시작");
+
+              if (onResult) {
+                onResult(currentTranscript)
+                  .then(() => {
+                    console.log("API 호출 완료 (성공)");
+                  })
+                  .catch((error) => {
+                    console.error("API 호출 중 오류:", error);
+                  })
+                  .finally(() => {
+                    recognition.stop();
+                  });
+              } else {
+                isApiRef.current = false;
+              }
+            }
+          }
+        }, 1000);
       }
-
-      setTranscript(currentTranscript);
-
-      // 무음 감지 타이머 재설정
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-      }
-
-      silenceTimerRef.current = setTimeout(() => {
-        if (Date.now() - lastSpeechTimestampRef.current > 2000) {
-          // 2초 동안 음성이 없으면
-          setIsActive(false); // UI 비활성화
-        }
-      }, 2000);
     };
 
     /**
@@ -312,13 +341,6 @@ const useSpeechRecognition = ({
       recognitionRef.current?.start();
     }
   }, [autoStart]);
-
-  // 음성인식이 끝나면 결과를 반환
-  useEffect(() => {
-    if (!isActive && onResult && transcript) {
-      onResult(transcript);
-    }
-  }, [isActive, onResult, transcript, transcripts]);
 
   return {
     transcript,

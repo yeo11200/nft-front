@@ -1,0 +1,68 @@
+.container {
+  width: 100%;
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  overflow: hidden;
+}
+
+.textContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.textItem {
+  width: 100%;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  font-weight: 700;
+  font-size: 2.5rem;
+  color: #333;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.1em;
+  line-height: 1.2;
+  text-align: center;
+
+  &:nth-child(2) {
+    color: #4a90e2;
+  }
+
+  &:nth-child(3) {
+    color: #e74c3c;
+  }
+
+  &:nth-child(4) {
+    color: #2ecc71;
+  }
+}
+
+.char {
+  display: inline-block;
+  white-space: pre;
+
+  &:hover {
+    transform: scale(1.2);
+    transition: transform 0.2s ease;
+  }
+}
+
+@media (max-width: 768px) {
+  .textContainer {
+    width: 100%;
+    height: auto;
+  }
+
+  .textItem {
+    font-size: 1.8rem;
+    text-align: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
