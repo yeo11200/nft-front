@@ -1,8 +1,17 @@
-.container {
+.fixedContainer {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 20px 20px 0;
+}
+
+.container {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -27,7 +36,8 @@
   justify-content: center;
   color: white;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
 }
 
 .transcript {
@@ -35,10 +45,38 @@
   bottom: 60px;
   right: 0;
   background: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 10px 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   min-width: 200px;
   max-width: 300px;
-  text-align: right;
+  text-align: left;
+  pointer-events: auto;
+  word-break: break-word;
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* 모바일 환경에서 트랜스크립트 크기 조정 */
+@media (max-width: 480px) {
+  .transcript {
+    min-width: 150px;
+    max-width: 250px;
+    font-size: 13px;
+    max-height: 120px;
+  }
+
+  .microphone {
+    width: 45px;
+    height: 45px;
+  }
+}
+
+/* iOS Safari에서 하단 네비게이션 바 고려 */
+@supports (-webkit-touch-callout: none) {
+  .fixedContainer {
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  }
 }
