@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode } from "react";
 import useSpeechRecognition from "../hooks/useSpeechRecognition";
 import { FloatingVoiceUI } from "../components/FloatingVoiceUI";
 import { useSpinner } from "./SpinnerContext";
+import { playTTS } from "../utils/tts-api";
 
 type SpeechContextType = {
   transcript: string;
@@ -27,11 +28,12 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
           console.log("2초 후 결과 처리 완료:", result);
           hideSpinner();
           resolve(); // 결과와 함께 Promise 해결
+
+          playTTS("잘되고 있니?");
         }, 1000);
       });
     },
   });
-
   return (
     <SpeechContext.Provider value={{ transcript, isActive }}>
       {children}
