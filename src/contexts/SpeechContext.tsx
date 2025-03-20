@@ -31,9 +31,9 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       showSpinner("결과 처리 중...");
 
       stop();
-      const response = await generateTextOnClient(result);
-      console.log("결과 처리 완료:", response);
-      hideSpinner();
+      const response = await generateTextOnClient(result).finally(() => {
+        hideSpinner();
+      });
       if (response?.message) {
         queueTTS(response.message);
       }
