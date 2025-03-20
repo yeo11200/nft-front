@@ -1,3 +1,45 @@
+export const fetchTTSAudio = async (
+  transcriptText = ""
+): Promise<ArrayBuffer> => {
+  if (!transcriptText.trim()) {
+    return Promise.reject(new Error("텍스트가 비어있습니다."));
+  }
+
+  const payload = {
+    model_id: "sonic-2",
+    transcript: transcriptText,
+    voice: {
+      mode: "id",
+      id: "af6beeea-d732-40b6-8292-73af0035b740",
+      __experimental_controls: {
+        speed: 0,
+        emotion: [],
+      },
+    },
+    output_format: {
+      container: "wav",
+      encoding: "pcm_f32le",
+      sample_rate: 44100,
+    },
+    language: "ko",
+  };
+
+  return fetch("https://api.cartesia.ai/tts/bytes", {
+    method: "POST",
+    headers: {
+      "Cartesia-Version": "2024-06-10",
+      "X-API-Key": "sk_car_KRESIOCUNkCFGjCGP0jkX",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  }).then((response) => {
+    if (!response.ok) {
+      throw new Error("네트워크 응답이 올바르지 않습니다.");
+    }
+    return response.arrayBuffer();
+  });
+};
+
 export const playTTS = (transcriptText = "") => {
   const payload = {
     model_id: "sonic-2",

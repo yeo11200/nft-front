@@ -5,16 +5,18 @@ import styles from "./FloatingVoiceUI.module.scss";
 interface FloatingVoiceUIProps {
   isActive: boolean;
   transcript: string;
+  onClick: () => void;
 }
 
 export const FloatingVoiceUI: React.FC<FloatingVoiceUIProps> = ({
   isActive,
   transcript,
+  onClick,
 }) => {
   return (
     <div className={styles.fixedContainer}>
       <AnimatePresence>
-        {(isActive || transcript) && (
+        {isActive && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -42,6 +44,7 @@ export const FloatingVoiceUI: React.FC<FloatingVoiceUIProps> = ({
               className={styles.microphone}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              onClick={onClick}
             >
               <svg
                 width="24"

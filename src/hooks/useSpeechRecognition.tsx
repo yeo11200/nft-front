@@ -38,7 +38,7 @@ export type UseSpeechRecognitionReturn = {
   transcript: string;
   transcripts: string[];
   error: string | null;
-  start: () => void;
+  start: (isTtsApi?: boolean) => void;
   stop: () => void;
   isActive: boolean;
   readText: (text: string) => void;
@@ -91,9 +91,11 @@ const useSpeechRecognition = ({
    * 음성 인식 시작 함수
    * 에러 발생 시 에러 상태 설정
    */
-  const start = useCallback(() => {
+  const start = useCallback((isTtsApi: boolean = false) => {
     try {
       console.log("Starting recognition");
+      isApiRef.current = false;
+      isRecognizing.current = isTtsApi;
       setTranscripts([]); // 시작할 때 배열 초기화
       recognitionRef.current?.start();
     } catch (e: any) {
@@ -106,8 +108,9 @@ const useSpeechRecognition = ({
    * 음성 인식 중지 함수
    */
   const stop = useCallback(() => {
-    console.log("Stopping recognition");
     isRecognizing.current = false;
+    setIsActive(false);
+    setTranscript("");
     recognitionRef.current?.stop();
   }, []);
 
@@ -189,6 +192,7 @@ const useSpeechRecognition = ({
      * 마이크 활성화 및 인식 시작 시 호출
      */
     recognition.onstart = () => {
+      console.log("isTtsApi 탐?", isApiRef.current);
       if (!isApiRef.current) {
         setTranscript("");
         setIsActive(false);

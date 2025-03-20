@@ -9,6 +9,7 @@ interface ConfirmProps {
   onCancel: () => void;
   confirmText?: string;
   cancelText?: string;
+  confirmStyle?: "primary" | "danger" | "warning";
 }
 
 export const Confirm: React.FC<ConfirmProps> = ({
@@ -18,7 +19,18 @@ export const Confirm: React.FC<ConfirmProps> = ({
   onCancel,
   confirmText = "확인",
   cancelText = "취소",
+  confirmStyle = "primary",
 }) => {
+  const getConfirmButtonClass = () => {
+    const baseClass = `${styles.button} ${styles.confirm}`;
+
+    switch (confirmStyle) {
+      case "primary":
+      default:
+        return baseClass;
+    }
+  };
+
   return (
     <AnimatePresence>
       <div className={styles.overlay}>
@@ -37,10 +49,7 @@ export const Confirm: React.FC<ConfirmProps> = ({
             >
               {cancelText}
             </button>
-            <button
-              className={`${styles.button} ${styles.confirm}`}
-              onClick={onConfirm}
-            >
+            <button className={getConfirmButtonClass()} onClick={onConfirm}>
               {confirmText}
             </button>
           </div>

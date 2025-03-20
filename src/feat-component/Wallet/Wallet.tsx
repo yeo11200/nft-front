@@ -1,52 +1,59 @@
 import { motion } from "framer-motion";
 import styles from "./Wallet.module.scss";
 import { useUI } from "../../contexts/UIContext";
+import { useCallback, useEffect, useState } from "react";
+import { AccountResponseDto } from "@/types/account/response.dto";
+import { useXrplAccount } from "../../hooks/useXrplAccount";
+import { useSpinner } from "../../contexts/SpinnerContext";
+import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
+import { convertXrpToKrw } from "../../utils/common";
 
-interface Friend {
+export interface Friend {
   nickname: string;
-  name: string;
-  walletAddress: string;
+  address: string;
   emoji: string;
 }
 
 const Wallet = () => {
-  const { toast, alert } = useUI();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const walletInfo = {
-    balance: "0.2564",
-    currency: "BTC",
-    krwBalance: "4,250,000",
-    address: "0x1234567890ABCDEF1234567890ABCDEF12345678",
-  };
+  const [accountData, setAccountData] = useState<AccountResponseDto["account"]>(
+    {
+      address: "",
+      secret: "",
+      balance: "0",
+    }
+  );
+  const friends = JSON.parse(localStorage.getItem("friends") || "[]");
+  const { sendPayment, getAccountInfo } = useXrplAccount();
+  const { showSpinner, hideSpinner } = useSpinner();
+  const { xrpPriceInfo } = useCryptoPrice();
+  const { toast, confirm } = useUI();
 
-  const friends: Friend[] = [
-    {
-      nickname: "블록왕",
-      name: "홍길동",
-      walletAddress: "0x1234567890ABCDEF1234567890ABCDEF12345678+1",
-      emoji: "🙂",
-    },
-    {
-      nickname: "체인마스터",
-      name: "김철수",
-      walletAddress: "0x1234567890ABCDEF1234567890ABCDEF12345678+2",
-      emoji: "😄",
-    },
-    {
-      nickname: "NFT러버",
-      name: "이영희",
-      walletAddress: "0x1234567890ABCDEF1234567890ABCDEF12345678+3",
-      emoji: "😁",
-    },
-  ];
+  const handleSendPayment = async (friend: Friend) => {
+    const result = await confirm(
+      `송금 하실래요?`,
+      `"${friend.nickname}"님에게 ${friend.address}로 송금하시겠습니까?`,
+      {
+        confirmText: "송금",
+        cancelText: "취소",
+        confirmStyle: "primary",
+        onConfirmAction: async () => {
+          showSpinner("송금 중...");
+          await sendPayment({
+            fromAddress: accountData.address,
+            toAddress: friend.address,
+            amount: 1,
+            secret: accountData.secret,
+          });
 
-  const handleCopyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast("복사에 성공했습니다.", "success");
-    } catch (err) {
-      console.error("복사 실패:", err);
-      alert("복사에 실패했습니다.", "");
+          await getAccountInfo(accountData.address);
+          hideSpinner();
+        },
+      }
+    );
+    if (result) {
+      console.log("송금 진행");
     }
   };
 
@@ -60,6 +67,48 @@ const Wallet = () => {
     visible: { opacity: 1, x: 0 },
   };
 
+  // 계정 정보 가져오기
+  const fetchAccountInfo = useCallback(
+    async (address: string) => {
+      try {
+        setIsLoading(true);
+        showSpinner("계정 정보 로드 중...");
+        const data = await getAccountInfo(address);
+        if (data.account) {
+          setAccountData({
+            ...data.account,
+            secret: data.account.secret || "",
+          });
+        }
+        hideSpinner();
+        setIsLoading(false);
+      } catch (err) {
+        console.error("계정 정보 가져오기 오류:", err);
+        toast("계정 정보를 가져오는 중 오류가 발생했습니다.", "error");
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [toast]
+  );
+
+  useEffect(() => {
+    // 로컬 스토리지에서 사용자 정보 가져오기
+    const userInfo = localStorage.getItem("userInfo");
+    if (userInfo) {
+      try {
+        const parsedInfo = JSON.parse(userInfo);
+        // 컴포넌트 마운트 시 계정 정보 가져오기
+        fetchAccountInfo(parsedInfo.address);
+      } catch (error) {
+        console.error("사용자 정보 파싱 오류:", error);
+      }
+    }
+  }, [fetchAccountInfo]);
+
+  if (isLoading) {
+    return <></>;
+  }
+
   return (
     <div className={styles.container}>
       <motion.div
@@ -68,26 +117,33 @@ const Wallet = () => {
         initial="hidden"
         animate="visible"
       >
-        <h2 className={styles.sectionTitle}>👛 내 지갑</h2>
-        <div className={styles.balanceInfo}>
-          <span className={styles.cryptoBalance}>
-            ₿ {walletInfo.balance} {walletInfo.currency}
-          </span>
-          <span className={styles.krwBalance}>≈ {walletInfo.krwBalance}원</span>
-        </div>
-        <div className={styles.addressContainer}>
-          <span className={styles.addressLabel}>주소: </span>
-          <span className={styles.address}>
-            {`${walletInfo.address.slice(0, 6)}...${walletInfo.address.slice(
-              -4
-            )}`}
-          </span>
-          <button
-            className={styles.copyButton}
-            onClick={() => handleCopyToClipboard(walletInfo.address)}
-          >
-            복사
-          </button>
+        <h2 className={styles.sectionTitle}>
+          <span className={styles.emoji}>👛</span> 내 지갑
+        </h2>
+        <div className={styles.walletCard}>
+          <div className={styles.balanceSection}>
+            <div className={styles.balanceLabel}>보유 잔액</div>
+            <div className={styles.balanceAmount}>
+              {new Intl.NumberFormat("ko-KR").format(
+                parseFloat(accountData.balance)
+              )}{" "}
+              XRP
+            </div>
+            {xrpPriceInfo && (
+              <div className={styles.krwValue}>
+                {convertXrpToKrw(parseFloat(accountData.balance), xrpPriceInfo)}
+              </div>
+            )}
+          </div>
+          <div className={styles.addressSection}>
+            <div className={styles.addressLabel}>주소:</div>
+            <div className={styles.addressValue}>
+              {`${accountData.address.slice(
+                0,
+                8
+              )}...${accountData.address.slice(-8)}`}
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -98,38 +154,53 @@ const Wallet = () => {
         animate="visible"
         transition={{ delay: 0.2 }}
       >
-        <h2 className={styles.sectionTitle}>👥 내 친구</h2>
+        <h2 className={styles.sectionTitle}>
+          <span className={styles.emoji}>👥</span> 내 친구
+        </h2>
         <div className={styles.friendsList}>
-          {friends.map((friend, index) => (
+          {friends.length > 0 ? (
+            friends.map((friend, index) => (
+              <motion.div
+                key={friend.address}
+                className={styles.friendItem}
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.1 * index }}
+              >
+                <div className={styles.friendInfo}>
+                  <span className={styles.friendEmoji}>{friend.emoji}</span>
+                  <span className={styles.friendName}>{friend.nickname}</span>
+                </div>
+                <div className={styles.friendAddress}>
+                  <span className={styles.addressText}>
+                    {`${friend.address.slice(0, 6)}...${friend.address.slice(
+                      -4
+                    )}`}
+                  </span>
+                  <button
+                    className={styles.sendButton}
+                    onClick={() => handleSendPayment(friend)}
+                  >
+                    송금
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          ) : (
             <motion.div
-              key={friend.walletAddress}
-              className={styles.friendItem}
-              variants={itemVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.1 * index }}
+              className={styles.emptyFriends}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
             >
-              <div className={styles.friendInfo}>
-                <span className={styles.emoji}>{friend.emoji}</span>
-                <span className={styles.nickname}>{friend.nickname}</span>
-                <span className={styles.name}>({friend.name})</span>
-              </div>
-              <div className={styles.friendAddress}>
-                <span className={styles.walletText}>
-                  {`${friend.walletAddress.slice(
-                    0,
-                    6
-                  )}...${friend.walletAddress.slice(-4)}`}
-                </span>
-                <button
-                  className={styles.copyButton}
-                  onClick={() => handleCopyToClipboard(friend.walletAddress)}
-                >
-                  복사
-                </button>
-              </div>
+              <div className={styles.emptyIcon}>🔍</div>
+              <p className={styles.emptyText}>아직 등록된 친구가 없어요</p>
+              <p className={styles.emptySubtext}>
+                친구를 추가하고 XRP를 주고받아보세요!
+              </p>
             </motion.div>
-          ))}
+          )}
         </div>
       </motion.div>
     </div>

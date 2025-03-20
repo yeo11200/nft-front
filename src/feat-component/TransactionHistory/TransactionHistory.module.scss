@@ -1,83 +1,146 @@
 .historyContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  padding: 0 16px;
 }
 
 .title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-  color: #2d3436;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .transactionCard {
   background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.cardHeader {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
 }
 
 .dateTime {
-  color: #636e72;
-  font-size: 0.9rem;
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dateIcon {
+  opacity: 0.7;
+}
+
+.status {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.statusSuccess {
+  background-color: rgba(50, 205, 50, 0.1);
+  color: #32cd32;
+}
+
+.statusFailed {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.transactionDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .participants {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
 .participant {
+  flex: 1;
+}
+
+.participantLabel {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.participantValue {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.isMe {
+  background-color: rgba(74, 144, 226, 0.1);
+  color: #4a90e2;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.transferArrow {
+  color: #ccc;
+}
+
+.amount {
+  font-size: 22px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 10px 16px;
+  border-radius: 12px;
 }
 
-.label {
-  color: #636e72;
-  font-size: 0.9rem;
+.positive {
+  color: #32cd32;
+  background-color: rgba(50, 205, 50, 0.05);
 }
 
-.value {
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.negative {
+  color: #e74c3c;
+  background-color: rgba(231, 76, 60, 0.05);
+}
+
+.amountIcon {
+  font-size: 20px;
+}
+
+.amountValue {
+  letter-spacing: -0.5px;
 }
 
 .copyButton {
   background: none;
   border: none;
-  color: #3498db;
+  font-size: 12px;
+  color: #4a90e2;
   cursor: pointer;
-  padding: 0;
-  font-size: 0.9rem;
+  padding: 2px 4px;
 
   &:hover {
     text-decoration: underline;
-  }
-}
-
-.amount {
-  font-size: 1.2rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &.positive {
-    color: #2ecc71;
-  }
-
-  &.negative {
-    color: #e74c3c;
   }
 }
 
@@ -85,14 +148,6 @@
   font-size: 0.9rem;
   color: #636e72;
   font-weight: normal;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
-  color: #636e72;
 }
 
 @media (max-width: 480px) {
@@ -107,4 +162,42 @@
   .amount {
     font-size: 1.1rem;
   }
+}
+
+.emptyHistory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  margin-top: 20px;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  width: 100%;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.emptyText {
+  font-size: 16px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.emptySubtext {
+  font-size: 14px;
+  color: #888;
+}
+
+.amountInKrw {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-left: 4px;
+  font-weight: normal;
 }

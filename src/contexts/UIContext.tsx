@@ -10,7 +10,17 @@ interface UIContextType {
     message: string,
     type?: "success" | "error" | "info" | "warning"
   ) => Promise<void>;
-  confirm: (title: string, message: string) => Promise<boolean>;
+  confirm: (
+    title: string,
+    message: string,
+    options?: {
+      confirmText?: string;
+      cancelText?: string;
+      confirmStyle?: "primary" | "danger" | "warning";
+      onConfirmAction?: () => void;
+      onCancelAction?: () => void;
+    }
+  ) => Promise<boolean>;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -45,6 +55,13 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     show: boolean;
     title: string;
     message: string;
+    options?: {
+      confirmText: string;
+      cancelText: string;
+      confirmStyle: "primary" | "danger" | "warning";
+      onConfirmAction?: () => void;
+      onCancelAction?: () => void;
+    };
     resolve?: (value: boolean) => void;
   }>({
     show: false,
@@ -72,10 +89,46 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
+  const handleConfirmAction = useCallback(
+    (confirmed: boolean) => {
+      if (confirmed && confirmState.options?.onConfirmAction) {
+        confirmState.options.onConfirmAction();
+      } else if (!confirmed && confirmState.options?.onCancelAction) {
+        confirmState.options.onCancelAction();
+      }
+
+      confirmState.resolve?.(confirmed);
+      setConfirmState((prev) => ({ ...prev, show: false }));
+    },
+    [confirmState]
+  );
+
   const confirm = useCallback(
-    (title: string, message: string): Promise<boolean> => {
+    (
+      title: string,
+      message: string,
+      options?: {
+        confirmText?: string;
+        cancelText?: string;
+        confirmStyle?: "primary" | "danger" | "warning";
+        onConfirmAction?: () => void;
+        onCancelAction?: () => void;
+      }
+    ): Promise<boolean> => {
       return new Promise((resolve) => {
-        setConfirmState({ show: true, title, message, resolve });
+        setConfirmState({
+          show: true,
+          title,
+          message,
+          options: {
+            confirmText: options?.confirmText || "확인",
+            cancelText: options?.cancelText || "취소",
+            confirmStyle: options?.confirmStyle || "primary",
+            onConfirmAction: options?.onConfirmAction,
+            onCancelAction: options?.onCancelAction,
+          },
+          resolve,
+        });
       });
     },
     []
@@ -91,16 +144,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setAlertState((prev) => ({ ...prev, show: false }));
   }, [alertState]);
-
-  const handleConfirmAction = useCallback(
-    (result: boolean) => {
-      if (confirmState.resolve) {
-        confirmState.resolve(result);
-      }
-      setConfirmState((prev) => ({ ...prev, show: false }));
-    },
-    [confirmState]
-  );
 
   return (
     <UIContext.Provider value={{ toast, alert, confirm }}>
@@ -124,6 +167,9 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
         <Confirm
           title={confirmState.title}
           message={confirmState.message}
+          confirmText={confirmState.options?.confirmText}
+          cancelText={confirmState.options?.cancelText}
+          confirmStyle={confirmState.options?.confirmStyle}
           onConfirm={() => handleConfirmAction(true)}
           onCancel={() => handleConfirmAction(false)}
         />
