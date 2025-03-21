@@ -10,6 +10,12 @@ import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
 dayjs.locale("ko");
 
+interface Friend {
+  nickname: string;
+  address: string;
+  emoji?: string;
+}
+
 const TransactionHistory: React.FC = () => {
   const { toast } = useUI();
   const { showSpinner, hideSpinner } = useSpinner();
@@ -18,30 +24,71 @@ const TransactionHistory: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [myWalletAddress, setMyWalletAddress] = useState<string>("");
   const { xrpPriceInfo } = useCryptoPrice();
+  const [friends, setFriends] = useState<Friend[]>([]);
 
   const formatAddress = useCallback((address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }, []);
 
-  // 거래 내역에 "나" 표시 추가
+  // 주소로 친구 찾기
+  const findFriendByAddress = useCallback(
+    (address: string): Friend | null => {
+      return friends.find((friend) => friend.address === address) || null;
+    },
+    [friends]
+  );
+
+  // 거래 내역에 친구 이름 추가
   const processedTransactions = useMemo(() => {
-    return transactions.map((tx) => ({
-      ...tx,
-      fromName:
-        tx.fromAddress === myWalletAddress
-          ? "나"
-          : formatAddress(tx.fromAddress),
-      toName:
-        tx.toAddress === myWalletAddress ? "나" : formatAddress(tx.toAddress),
-      // 거래 방향 (보낸 것인지 받은 것인지)
-      isOutgoing: tx.fromAddress === myWalletAddress,
-      // 실제 금액 (보낸 경우 음수, 받은 경우 양수)
-      effectiveAmount:
-        tx.fromAddress === myWalletAddress
-          ? -Math.abs(parseFloat(tx.amount))
-          : Math.abs(parseFloat(tx.amount)),
-    }));
-  }, [myWalletAddress, transactions, formatAddress]);
+    return transactions.map((tx) => {
+      // 발신자 정보
+      let fromName = "";
+      let fromEmoji = "";
+
+      if (tx.fromAddress === myWalletAddress) {
+        fromName = "나";
+      } else {
+        const fromFriend = findFriendByAddress(tx.fromAddress);
+        if (fromFriend) {
+          fromName = fromFriend.nickname;
+          fromEmoji = fromFriend.emoji || "";
+        } else {
+          fromName = formatAddress(tx.fromAddress);
+        }
+      }
+
+      // 수신자 정보
+      let toName = "";
+      let toEmoji = "";
+
+      if (tx.toAddress === myWalletAddress) {
+        toName = "나";
+      } else {
+        const toFriend = findFriendByAddress(tx.toAddress);
+        if (toFriend) {
+          toName = toFriend.nickname;
+          toEmoji = toFriend.emoji || "";
+        } else {
+          toName = formatAddress(tx.toAddress);
+        }
+      }
+
+      return {
+        ...tx,
+        fromName,
+        fromEmoji,
+        toName,
+        toEmoji,
+        // 거래 방향 (보낸 것인지 받은 것인지)
+        isOutgoing: tx.fromAddress === myWalletAddress,
+        // 실제 금액 (보낸 경우 음수, 받은 경우 양수)
+        effectiveAmount:
+          tx.fromAddress === myWalletAddress
+            ? -Math.abs(parseFloat(tx.amount))
+            : Math.abs(parseFloat(tx.amount)),
+      };
+    });
+  }, [myWalletAddress, transactions, formatAddress, findFriendByAddress]);
 
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -68,6 +115,28 @@ const TransactionHistory: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [toast]
   );
+
+  // XRP 잔액 변환 함수 (drops -> XRP)
+  const formatXrpBalance = (balanceInDrops: string): string => {
+    // balance를 숫자로 변환하고 1,000,000으로 나누어 XRP 단위로 표시
+    const balanceInXrp = parseFloat(balanceInDrops) / 1000000;
+    return balanceInXrp.toLocaleString("ko-KR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6,
+    });
+  };
+
+  // 처음 컴포넌트 로드 시 친구 목록 가져오기
+  useEffect(() => {
+    try {
+      const friendsData = localStorage.getItem("friends");
+      if (friendsData) {
+        setFriends(JSON.parse(friendsData));
+      }
+    } catch (error) {
+      console.error("친구 목록 로딩 오류:", error);
+    }
+  }, []);
 
   useEffect(() => {
     // 로컬 스토리지에서 사용자 정보 가져오기
@@ -123,18 +192,24 @@ const TransactionHistory: React.FC = () => {
                 <div className={styles.participant}>
                   <div className={styles.participantLabel}>보낸 사람</div>
                   <div className={styles.participantValue}>
+                    {tx.fromEmoji && (
+                      <span className={styles.participantEmoji}>
+                        {tx.fromEmoji}
+                      </span>
+                    )}
                     <span className={tx.fromName === "나" ? styles.isMe : ""}>
                       {tx.fromName}
                     </span>
-                    {tx.fromName !== "나" && (
-                      <button
-                        className={styles.copyButton}
-                        onClick={() => handleCopyAddress(tx.fromAddress)}
-                        aria-label="주소 복사"
-                      >
-                        [복사]
-                      </button>
-                    )}
+                    {tx.fromName !== "나" &&
+                      !findFriendByAddress(tx.fromAddress) && (
+                        <button
+                          className={styles.copyButton}
+                          onClick={() => handleCopyAddress(tx.fromAddress)}
+                          aria-label="주소 복사"
+                        >
+                          [복사]
+                        </button>
+                      )}
                   </div>
                 </div>
 
@@ -153,18 +228,24 @@ const TransactionHistory: React.FC = () => {
                 <div className={styles.participant}>
                   <div className={styles.participantLabel}>받은 사람</div>
                   <div className={styles.participantValue}>
+                    {tx.toEmoji && (
+                      <span className={styles.participantEmoji}>
+                        {tx.toEmoji}
+                      </span>
+                    )}
                     <span className={tx.toName === "나" ? styles.isMe : ""}>
                       {tx.toName}
                     </span>
-                    {tx.toName !== "나" && (
-                      <button
-                        className={styles.copyButton}
-                        onClick={() => handleCopyAddress(tx.toAddress)}
-                        aria-label="주소 복사"
-                      >
-                        [복사]
-                      </button>
-                    )}
+                    {tx.toName !== "나" &&
+                      !findFriendByAddress(tx.toAddress) && (
+                        <button
+                          className={styles.copyButton}
+                          onClick={() => handleCopyAddress(tx.toAddress)}
+                          aria-label="주소 복사"
+                        >
+                          [복사]
+                        </button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -179,17 +260,18 @@ const TransactionHistory: React.FC = () => {
                 </span>
                 <span className={styles.amountValue}>
                   {tx.effectiveAmount > 0 ? "+" : ""}
-                  {new Intl.NumberFormat("ko-KR").format(
-                    Math.abs(tx.effectiveAmount)
-                  )}{" "}
-                  XRP
+                  {formatXrpBalance(tx.effectiveAmount.toString())} XRP
                 </span>
 
                 {xrpPriceInfo && (
                   <span className={styles.amountInKrw}>
                     (
                     {convertXrpToKrw(
-                      Math.abs(tx.effectiveAmount),
+                      Math.abs(
+                        parseFloat(
+                          formatXrpBalance(tx.effectiveAmount.toString())
+                        )
+                      ),
                       xrpPriceInfo
                     )}
                     )

@@ -13,7 +13,6 @@ import { CryptoPriceProvider } from "./contexts/CryptoPriceContext";
 import SignUp from "./feat-component/SignUp/SignUp";
 import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
-import { useXrplAccount } from "./hooks/useXrplAccount";
 
 export type AccountResponse = {
   status: string;
@@ -35,31 +34,44 @@ function App() {
     !!localStorage.getItem("userInfo")
   );
 
-  const { createAccount } = useXrplAccount();
-
   // 친구 계정 생성 함수
   const initializeFriends = useCallback(async () => {
     const friends = JSON.parse(localStorage.getItem("friends") || "[]");
 
     if (friends.length === 0) {
       try {
-        // 5명의 지정된 친구 닉네임으로 계정 생성
-        const friendNames = ["카이", "리암", "준", "해리", "제이콥"];
-        const friendEmojis = ["😎", "🚀", "🔥", "🌟", "🎮"];
-
-        const newFriends = await Promise.all(
-          friendNames.map(async (name, index) => {
-            // createAccount 함수를 사용하여 계정 생성
-            const account = await createAccount(name);
-            return {
-              nickname: name,
-              address: account.account?.address || "",
-              emoji: friendEmojis[index], // 이모지 추가
-              secret: account.account?.secret || "",
-            };
-          })
-        );
-
+        const newFriends = [
+          {
+            nickname: "카이",
+            address: "rJkNdbv3UfhFHpYA4Z43MT1kikM4cbzx3N",
+            emoji: "😎",
+            secret: "sEdVFQdrinmTnE4Crz3qw6NR7Q7rMBg",
+          },
+          {
+            nickname: "리암",
+            address: "rNo2tAqkdM7g189BjqV9USZo1PtaM6S27t",
+            emoji: "🚀",
+            secret: "sEdTk578DYn1tJCrmiePyNG7N1c4mCm",
+          },
+          {
+            nickname: "준",
+            address: "rp95ayUo6SkpVQqbGkr4wPK7SgDfUPUXjE",
+            emoji: "🔥",
+            secret: "sEdV9gPQcPZK6w3x4D7mipFVUbQaBuP",
+          },
+          {
+            nickname: "해리",
+            address: "rNsPBkhVGojfDZcZqYk3zX3xrJahYRbA1H",
+            emoji: "🌟",
+            secret: "sEd77AMoSqSM5ZMcxeivehqESarmo9h",
+          },
+          {
+            nickname: "제이콥",
+            address: "rJ9uCtzbGa14NuPYuhPxX1umBFjnzAQxhn",
+            emoji: "🎮",
+            secret: "sEdTrcU5S9Nv9TznFDgEBKErSHjCfpA",
+          },
+        ];
         // 로컬 스토리지에 저장
         localStorage.setItem("friends", JSON.stringify(newFriends));
         console.log("친구 계정 생성 완료:", newFriends);

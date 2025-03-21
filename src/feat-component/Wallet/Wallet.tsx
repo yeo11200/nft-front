@@ -31,7 +31,6 @@ const Wallet = () => {
   const { toast, confirm } = useUI();
 
   const handleSendPayment = async (friend: Friend) => {
-    console.log(accountData, "accountData");
     const result = await confirm(
       `송금 하실래요?`,
       `"${friend.nickname}"님에게 ${friend.address}로 송금하시겠습니까?`,
@@ -50,12 +49,11 @@ const Wallet = () => {
 
           const data = await getAccountInfo(accountData.address);
 
-          console.log(data, "data");
           if (data.account) {
-            setAccountData({
-              ...data.account,
-              secret: data.account.secret || "",
-            });
+            setAccountData((props) => ({
+              ...props,
+              balance: data?.account?.balance || "0",
+            }));
           }
           hideSpinner();
         },
@@ -64,6 +62,16 @@ const Wallet = () => {
     if (result) {
       console.log("송금 진행");
     }
+  };
+
+  // XRP 잔액 변환 함수 (drops -> XRP)
+  const formatXrpBalance = (balanceInDrops: string): string => {
+    // balance를 숫자로 변환하고 1,000,000으로 나누어 XRP 단위로 표시
+    const balanceInXrp = parseFloat(balanceInDrops) / 1000000;
+    return balanceInXrp.toLocaleString("ko-KR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6,
+    });
   };
 
   const containerVariants = {
@@ -134,14 +142,14 @@ const Wallet = () => {
           <div className={styles.balanceSection}>
             <div className={styles.balanceLabel}>보유 잔액</div>
             <div className={styles.balanceAmount}>
-              {new Intl.NumberFormat("ko-KR").format(
-                parseFloat(accountData.balance)
-              )}{" "}
-              XRP
+              {formatXrpBalance(accountData.balance)} XRP
             </div>
             {xrpPriceInfo && (
               <div className={styles.krwValue}>
-                {convertXrpToKrw(parseFloat(accountData.balance), xrpPriceInfo)}
+                {convertXrpToKrw(
+                  parseFloat(formatXrpBalance(accountData.balance)),
+                  xrpPriceInfo
+                )}
               </div>
             )}
           </div>
