@@ -689,7 +689,7 @@ const useSpeechRecognition = ({
               }
             }
           }
-        }, 1000);
+        }, 2000);
       }
     };
 
