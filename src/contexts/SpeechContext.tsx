@@ -91,6 +91,9 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       if (taskInfo) {
         if (taskInfo.statusInfo.status === "success") {
           switch (taskInfo.data.task) {
+            case TaskName.GO_TO_MAIN:
+              navigate("/");
+              break;
             case TaskName.GET_ACCOUNT:
               navigate("/wallet");
               break;

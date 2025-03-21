@@ -4,10 +4,11 @@
  * Available task names in the system
  */
 export enum TaskName {
-  GET_ACCOUNT = 'get-account',
-  PAYMENT_XRP = 'payment-xrp',
-  GET_TRANSACTION_HISTORY = 'get-transaction-history',
-  GET_TRANSACTION_DETAIL = 'get-transaction-detail'
+  GET_ACCOUNT = "get-account", // 내 지갑으로 이동
+  PAYMENT_XRP = "payment-xrp", // 송금 관련 팝업 노출
+  GET_TRANSACTION_HISTORY = "get-transaction-history", // 거래 내역 이동
+  GET_TRANSACTION_DETAIL = "get-transaction-detail", // 거래 상세 팝업 노출
+  GO_TO_MAIN = "go-to-main",
 }
 
 /**
@@ -59,9 +60,9 @@ export interface GetTransactionDetailParameters {
 /**
  * Union type for all possible parameter types
  */
-export type TaskParameters = 
-  | TransferTaskParameters 
-  | CheckBalanceTaskParameters 
+export type TaskParameters =
+  | TransferTaskParameters
+  | CheckBalanceTaskParameters
   | GetAccountParameters
   | PaymentXrpParameters
   | GetTransactionHistoryParameters
@@ -73,11 +74,11 @@ export type TaskParameters =
  */
 export interface TaskResponseDto {
   statusInfo: {
-    status: 'success' | 'fail';
+    status: "success" | "fail";
     message: string;
   };
   data: {
     task: TaskName | null;
     parameters: TaskParameters | null;
   };
-} 
+}
