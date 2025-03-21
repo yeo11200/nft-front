@@ -31,6 +31,7 @@ const Wallet = () => {
   const { toast, confirm } = useUI();
 
   const handleSendPayment = async (friend: Friend) => {
+    console.log(accountData, "accountData");
     const result = await confirm(
       `송금 하실래요?`,
       `"${friend.nickname}"님에게 ${friend.address}로 송금하시겠습니까?`,
@@ -47,7 +48,15 @@ const Wallet = () => {
             secret: accountData.secret,
           });
 
-          await getAccountInfo(accountData.address);
+          const data = await getAccountInfo(accountData.address);
+
+          console.log(data, "data");
+          if (data.account) {
+            setAccountData({
+              ...data.account,
+              secret: data.account.secret || "",
+            });
+          }
           hideSpinner();
         },
       }
@@ -69,11 +78,12 @@ const Wallet = () => {
 
   // 계정 정보 가져오기
   const fetchAccountInfo = useCallback(
-    async (address: string) => {
+    async (address: string, secret: string) => {
       try {
         setIsLoading(true);
         showSpinner("계정 정보 로드 중...");
-        const data = await getAccountInfo(address);
+        const data = await getAccountInfo(address, secret);
+        console.log(data, "data");
         if (data.account) {
           setAccountData({
             ...data.account,
@@ -98,7 +108,7 @@ const Wallet = () => {
       try {
         const parsedInfo = JSON.parse(userInfo);
         // 컴포넌트 마운트 시 계정 정보 가져오기
-        fetchAccountInfo(parsedInfo.address);
+        fetchAccountInfo(parsedInfo.address, parsedInfo.secret);
       } catch (error) {
         console.error("사용자 정보 파싱 오류:", error);
       }

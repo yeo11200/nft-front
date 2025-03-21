@@ -83,6 +83,7 @@ export const useXrplAccount = () => {
   useEffect(() => {
     const savedAccount = localStorage.getItem("userInfo");
     if (savedAccount) {
+      console.log(JSON.parse(savedAccount), "savedAccount");
       try {
         setAccount(JSON.parse(savedAccount));
       } catch (err) {
@@ -143,7 +144,7 @@ export const useXrplAccount = () => {
 
   // 계정 정보 조회 함수
   const getAccountInfo = useCallback(
-    async (address?: string): Promise<AccountInfoResponse> => {
+    async (address?: string, secret?: string): Promise<AccountInfoResponse> => {
       setIsLoading(true);
       setError(null);
 
@@ -155,6 +156,7 @@ export const useXrplAccount = () => {
         }
 
         const accountAddress = address || account?.address;
+        const accountSecret = secret || account?.secret;
         console.log(accountAddress, "accountAddress");
         if (!accountAddress) {
           throw new Error("계정 주소가 제공되지 않았습니다.");
@@ -166,9 +168,11 @@ export const useXrplAccount = () => {
           ledger_index: "validated",
         });
 
+        console.log(response, "response", accountAddress);
+
         const accountInfo: Account = {
           address: accountAddress,
-          secret: account?.secret,
+          secret: accountSecret,
           balance: response.result.account_data.Balance,
         };
 
@@ -212,7 +216,6 @@ export const useXrplAccount = () => {
       setError(null);
 
       try {
-        console.log(client);
         const xrplClient = await getXrplClient();
 
         if (!xrplClient) {
@@ -220,6 +223,8 @@ export const useXrplAccount = () => {
         }
 
         const wallet = Wallet.fromSeed(txRequest.secret);
+
+        console.log(wallet, "wallet", txRequest);
 
         // 트랜잭션 준비
         const prepared = await xrplClient.autofill({
@@ -229,6 +234,7 @@ export const useXrplAccount = () => {
           Destination: txRequest.toAddress,
         });
 
+        console.log(prepared, "prepared");
         // 트랜잭션 서명
         const signed = wallet.sign(prepared);
 
