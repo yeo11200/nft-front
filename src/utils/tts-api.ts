@@ -42,13 +42,13 @@ export const fetchTTSAudio = async (
 
 export const playTTS = (transcriptText = "") => {
   const payload = {
-    model_id: "sonic-2",
+    model_id: "sonic",
     transcript: transcriptText,
     voice: {
       mode: "id",
-      id: "af6beeea-d732-40b6-8292-73af0035b740",
+      id: "304fdbd8-65e6-40d6-ab78-f9d18b9efdf9",
       __experimental_controls: {
-        speed: 0,
+        speed: -0.3,
         emotion: [],
       },
     },

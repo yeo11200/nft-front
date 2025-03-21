@@ -146,11 +146,11 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       await playTTS(nextText)
         .then(() => {
           console.log("TTS 재생 완료");
-          toast(nextText, "error");
         })
         .catch((err) => {
           console.error("TTS 재생 오류:", err);
         });
+      toast(nextText, "error");
 
       console.log("TTS 재생 완료");
     } finally {
@@ -179,14 +179,15 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const handleClick = useCallback(() => {
     stop();
 
-    start(false);
+    setTimeout(() => {
+      start(false);
+    }, 500);
   }, [start]);
 
   useEffect(() => {
     stop();
   }, [stop]);
 
-  console.log("isActive", isActive);
   return (
     <SpeechContext.Provider value={{ transcript, isActive }}>
       {children}
