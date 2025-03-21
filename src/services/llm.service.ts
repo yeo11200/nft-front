@@ -44,28 +44,53 @@ const generateTextOnClient = async (
 
 /**
  * Parse the LLM response to extract task information
- * @param llmResponse The response from the LLM
+ * @param llmResponse The response from the LLM (string or object)
  * @returns Structured task response
  */
-const parseTaskFromResponse = (llmResponse: string): TaskResponseDto | null => {
+const parseTaskFromResponse = (llmResponse: string | any): TaskResponseDto | null => {
   try {
-    // Try to parse the response as JSON
-    const taskResponse = JSON.parse(llmResponse) as TaskResponseDto;
+    // 이미 객체인 경우와 문자열인 경우를 모두 처리
+    let parsedResponse;
+
+    console.log("llmResponse", llmResponse);
     
-    // Validate the structure
-    if (
-      taskResponse &&
-      typeof taskResponse.statusInfo === 'object' &&
-      (taskResponse.statusInfo.status === 'success' || taskResponse.statusInfo.status === 'fail') &&
-      typeof taskResponse.statusInfo.message === 'string' &&
-      typeof taskResponse.data === 'object'
-    ) {
-      return taskResponse;
+    // 문자열인 경우 JSON.parse
+    if (typeof llmResponse === 'string') {
+      try {
+        parsedResponse = JSON.parse(llmResponse);
+      } catch (parseError) {
+        console.error('Failed to parse LLM response string:', parseError);
+        return null;
+      }
+    } else if (typeof llmResponse === 'object' && llmResponse !== null) {
+      // 이미 객체인 경우 그대로 사용
+      parsedResponse = llmResponse;
+    } else {
+      console.error('LLM response is neither a string nor an object:', typeof llmResponse);
+      return null;
     }
     
+    // 응답 구조 확인 - response 객체가 있는 경우 (중첩 구조)
+    if (parsedResponse.success && parsedResponse.response) {
+      // 응답이 중첩 구조인 경우 (success + response 객체)
+      return parsedResponse.response as TaskResponseDto;
+    }
+    
+    // 직접 TaskResponseDto 구조인 경우
+    if (
+      parsedResponse &&
+      typeof parsedResponse.statusInfo === 'object' &&
+      (parsedResponse.statusInfo.status === 'success' || parsedResponse.statusInfo.status === 'fail') &&
+      typeof parsedResponse.statusInfo.message === 'string' &&
+      typeof parsedResponse.data === 'object'
+    ) {
+      return parsedResponse as TaskResponseDto;
+    }
+    
+    console.error('Invalid task response structure:', parsedResponse);
     return null;
   } catch (error) {
-    console.error('Failed to parse LLM response as task:', error);
+    console.error('Error processing LLM response:', error);
     return null;
   }
 };
