@@ -143,6 +143,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       console.log("TTS 재생 시작:", nextText);
       stop();
 
+      toast(nextText, "error");
+
       await playTTS(nextText)
         .then(() => {
           console.log("TTS 재생 완료");
@@ -150,7 +152,6 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
         .catch((err) => {
           console.error("TTS 재생 오류:", err);
         });
-      toast(nextText, "error");
 
       console.log("TTS 재생 완료");
     } finally {
@@ -181,7 +182,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
 
     setTimeout(() => {
       start(false);
-    }, 500);
+    }, 200);
   }, [start]);
 
   useEffect(() => {
