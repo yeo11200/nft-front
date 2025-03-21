@@ -108,6 +108,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
           if (res?.transaction) {
             openTransactionDetail(res.transaction.hash);
           }
+        } else {
+          queueTTS("생체 인증에 실패했습니다.");
         }
       },
     });
