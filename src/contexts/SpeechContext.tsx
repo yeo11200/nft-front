@@ -54,44 +54,46 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const nickname = localStorage.getItem("userInfo")
-      ? JSON.parse(localStorage.getItem("userInfo")!).userId
-      : "사용자";
+    const result = await confirm(`송금 하실래요?`, message, {
+      confirmText: "송금",
+      cancelText: "취소",
+      confirmStyle: "primary",
+      onConfirmAction: async () => {
+        const nickname = localStorage.getItem("userInfo")
+          ? JSON.parse(localStorage.getItem("userInfo")!).userId
+          : "사용자";
 
-    let autoLogin = localStorage.getItem("autoLogin");
+        let autoLogin = localStorage.getItem("autoLogin");
 
-    // 생체 인증 등록 시도
-    if (!autoLogin) {
-      const credential = await handleRegistration(nickname, address);
-      console.log("credential", credential);
-      if (!credential) {
-        toast("생체 인증 등록에 실패했습니다.", "error");
-        return false;
-      }
+        // 생체 인증 등록 시도
+        if (!autoLogin) {
+          const credential = await handleRegistration(nickname, address);
+          console.log("credential", credential);
+          if (!credential) {
+            toast("생체 인증 등록에 실패했습니다.", "error");
+            return false;
+          }
 
-      const autoLoginData = {
-        credentialId: credential.id,
-        rawId: btoa(
-          String.fromCharCode.apply(
-            null,
-            Array.from(new Uint8Array(credential.rawId))
-          )
-        ),
-      };
-      localStorage.setItem("autoLogin", JSON.stringify(autoLoginData));
+          const autoLoginData = {
+            credentialId: credential.id,
+            rawId: btoa(
+              String.fromCharCode.apply(
+                null,
+                Array.from(new Uint8Array(credential.rawId))
+              )
+            ),
+          };
+          localStorage.setItem("autoLogin", JSON.stringify(autoLoginData));
 
-      autoLogin = JSON.stringify(autoLoginData);
-    }
+          autoLogin = JSON.stringify(autoLoginData);
+        }
 
-    // 바로 인증 시도
-    const authResult = await handleAuthentication(JSON.parse(autoLogin!).rawId);
+        // 바로 인증 시도
+        const authResult = await handleAuthentication(
+          JSON.parse(autoLogin!).rawId
+        );
 
-    if (authResult) {
-      const result = await confirm(`송금 하실래요?`, message, {
-        confirmText: "송금",
-        cancelText: "취소",
-        confirmStyle: "primary",
-        onConfirmAction: async () => {
+        if (authResult) {
           showSpinner("송금 중...");
           const res = await sendPayment({
             fromAddress: accountData.address,
@@ -103,15 +105,14 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
           hideSpinner();
 
           navigate("/transaction-history");
-          console.log("result", res);
           if (res?.transaction) {
             openTransactionDetail(res.transaction.hash);
           }
-        },
-      });
-      if (result) {
-        console.log("송금 진행");
-      }
+        }
+      },
+    });
+    if (result) {
+      console.log("송금 진행");
     }
   };
   const { transcript, isActive, stop, start } = useSpeechRecognition({

@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Route, Routes, BrowserRouter, Navigate } from "react-router-dom";
+import {
+  Route,
+  Routes,
+  BrowserRouter,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import TicketManager from "./feat-component/TicketManager";
 import NftAccount from "./feat-component/NftAccount";
 import TicketVerifier from "./feat-component/TicketVerifier";
@@ -34,6 +40,7 @@ function App() {
   const [hasWallet, setHasWallet] = useState<boolean | null>(
     !!localStorage.getItem("userInfo")
   );
+  const location = useLocation();
 
   // 친구 계정 생성 함수
   const initializeFriends = useCallback(async () => {
@@ -92,6 +99,11 @@ function App() {
     checkWalletExists();
     initializeFriends(); // 친구 목록 초기화
   }, [initializeFriends]);
+
+  // 페이지 변경 시 스크롤 위치 초기화
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <UIProvider>
