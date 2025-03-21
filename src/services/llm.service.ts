@@ -26,7 +26,7 @@ const generateTextOnClient = async (
     friends: friends,
   };
 
-  const response = await fetch("/api/llm/generate", {
+  const response = await fetch(`${process.env.REACT_APP_XRP_PRICE_API_KEY}/api/llm/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
