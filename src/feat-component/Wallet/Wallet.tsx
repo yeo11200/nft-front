@@ -8,7 +8,7 @@ import { useSpinner } from "../../contexts/SpinnerContext";
 import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
 import { useTransactionDetail } from "../../contexts/TransactionDetailContext";
-import { handleAuthentication } from "../../utils/auto";
+import { handleRegistration, handleAuthentication } from "../../utils/auto";
 
 export interface Friend {
   nickname: string;
@@ -34,62 +34,181 @@ const Wallet = () => {
   const { toast, confirm } = useUI();
 
   const handleSendPayment = async (friend: Friend) => {
-    // 로컬 스토리지에서 저장된 credential 정보 가져오기
-    const credentialData = localStorage.getItem("credential");
-    if (!credentialData) {
-      toast("등록된 생체 인증 정보가 없습니다.", "error");
-      return;
-    }
-
-    const { rawId } = JSON.parse(credentialData);
-
-    // base64 문자열을 ArrayBuffer로 변환
-    const rawIdArray = Uint8Array.from(atob(rawId), (c) => c.charCodeAt(0));
-    const rawIdBuffer = rawIdArray.buffer;
-
-    // 생체 인증 수행
-    const authResult = await handleAuthentication(rawIdBuffer);
-
-    if (!authResult) {
-      toast("생체 인증에 실패했습니다.", "error");
-      return;
-    }
-
     const result = await confirm(
       `송금 하실래요?`,
-      `${friend.nickname}에게 1 XRP를 보내는 작업을 준비했어요.  인증 해주시면 바로 보낼게요!`,
+      `${friend.nickname}에게 1 XRP를 보내는 작업을 준비했어요. 확인 버튼 클릭 시 생체 인증 후 송금이 진행됩니다.`,
       {
         confirmText: "송금",
         cancelText: "취소",
         confirmStyle: "primary",
         onConfirmAction: async () => {
-          showSpinner("송금 중...");
-          const res = await sendPayment({
-            fromAddress: accountData.address,
-            toAddress: friend.address,
-            amount: 1,
-            secret: accountData.secret,
-          });
+          try {
+            showSpinner("생체 인증 중...");
 
-          console.log("result", res?.transaction);
+            // 생체 인증 지원 여부 확인
+            if (!window.PublicKeyCredential) {
+              toast("이 브라우저는 생체 인증을 지원하지 않습니다.", "error");
+              hideSpinner();
+              return false;
+            }
 
-          if (res?.transaction) {
-            openTransactionDetail(res.transaction.hash);
+            try {
+              const nickname = localStorage.getItem("userInfo")
+                ? JSON.parse(localStorage.getItem("userInfo")!).userId
+                : "사용자";
+              const address = accountData.address;
+
+              let autoLogin = localStorage.getItem("autoLogin");
+              // 생체 인증 등록 시도
+              if (!autoLogin) {
+                const credential = await handleRegistration(nickname, address);
+                console.log("credential", credential);
+                if (!credential) {
+                  toast("생체 인증 등록에 실패했습니다.", "error");
+                  return false;
+                }
+
+                const autoLoginData = {
+                  credentialId: credential.id,
+                  rawId: btoa(
+                    String.fromCharCode.apply(
+                      null,
+                      Array.from(new Uint8Array(credential.rawId))
+                    )
+                  ),
+                };
+                localStorage.setItem(
+                  "autoLogin",
+                  JSON.stringify(autoLoginData)
+                );
+
+                autoLogin = JSON.stringify(autoLoginData);
+              }
+
+              // 바로 인증 시도
+              const authResult = await handleAuthentication(
+                JSON.parse(autoLogin!).rawId
+              );
+
+              if (authResult) {
+                // 인증 성공 - 송금 진행
+                showSpinner("송금 중...");
+                const res = await sendPayment({
+                  fromAddress: accountData.address,
+                  toAddress: friend.address,
+                  amount: 1,
+                  secret: accountData.secret,
+                });
+
+                if (res?.transaction) {
+                  openTransactionDetail(res.transaction.hash);
+                }
+
+                const data = await getAccountInfo(accountData.address);
+                if (data.account) {
+                  setAccountData((props) => ({
+                    ...props,
+                    balance: data?.account?.balance || "0",
+                  }));
+                }
+
+                return true; // 송금 완료
+              } else {
+                toast("생체 인증에 실패했습니다.", "error");
+                return false;
+              }
+            } catch (error) {
+              // 인증 실패 - 대부분 등록된 인증 정보가 없는 경우
+              console.log("인증 시도 중 오류:", error);
+
+              hideSpinner(); // 대화상자 표시 전에 스피너 숨기기
+
+              // 생체 인증 등록 여부 확인
+              const registerBio = await confirm(
+                "생체 인증 등록",
+                "송금을 위해서는 생체 인증이 필요합니다. 지금 등록하시겠습니까?",
+                {
+                  confirmText: "등록하기",
+                  cancelText: "취소",
+                  confirmStyle: "primary",
+                }
+              );
+
+              if (!registerBio) {
+                toast(
+                  "생체 인증 등록을 취소하여 송금이 취소되었습니다.",
+                  "info"
+                );
+                return false;
+              }
+
+              // 생체 인증 등록 진행
+              try {
+                showSpinner("생체 인증 등록 중...");
+                const nickname = localStorage.getItem("userInfo")
+                  ? JSON.parse(localStorage.getItem("userInfo")!).userId
+                  : "사용자";
+                const address = accountData.address;
+
+                // 생체 인증 등록 시도
+                console.log("등록 시작: ", { nickname, address });
+                const credential = await handleRegistration(nickname, address);
+                console.log("등록 결과:", credential);
+
+                if (!credential) {
+                  toast("생체 인증 등록에 실패했습니다.", "error");
+                  return false;
+                }
+
+                toast("생체 인증이 등록되었습니다.", "success");
+
+                // 등록 직후 바로 송금 진행
+                showSpinner("송금 중...");
+                const res = await sendPayment({
+                  fromAddress: accountData.address,
+                  toAddress: friend.address,
+                  amount: 1,
+                  secret: accountData.secret,
+                });
+
+                if (res?.transaction) {
+                  openTransactionDetail(res.transaction.hash);
+                }
+
+                const data = await getAccountInfo(accountData.address);
+                if (data.account) {
+                  setAccountData((props) => ({
+                    ...props,
+                    balance: data?.account?.balance || "0",
+                  }));
+                }
+
+                return true;
+              } catch (error) {
+                console.error("생체 인증 등록 오류:", error);
+                toast(
+                  "생체 인증 등록에 실패했습니다: " +
+                    (error instanceof Error
+                      ? error.message
+                      : "알 수 없는 오류"),
+                  "error"
+                );
+                return false;
+              }
+            }
+          } catch (error) {
+            console.error("처리 중 오류:", error);
+            toast("처리 중 오류가 발생했습니다.", "error");
+            return false;
+          } finally {
+            hideSpinner();
           }
-          const data = await getAccountInfo(accountData.address);
-
-          if (data.account) {
-            setAccountData((props) => ({
-              ...props,
-              balance: data?.account?.balance || "0",
-            }));
-          }
-          hideSpinner();
         },
       }
     );
+
     if (result) {
-      console.log("송금 진행");
+      console.log("송금 완료");
     }
   };
 

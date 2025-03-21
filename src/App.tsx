@@ -88,32 +88,6 @@ function App() {
     const checkWalletExists = async () => {
       const userInfo = localStorage.getItem("userInfo");
       setHasWallet(!!userInfo);
-
-      if (userInfo) {
-        const userInfoObj = JSON.parse(userInfo);
-
-        console.log("userInfoObj:", userInfoObj);
-        const credential = await handleRegistration(
-          userInfoObj.nickname,
-          userInfoObj.address || undefined
-        );
-
-        if (credential) {
-          console.log("등록 성공:", credential);
-          localStorage.setItem(
-            "credential",
-            JSON.stringify({
-              credentialId: credential.id,
-              rawId: btoa(
-                String.fromCharCode.apply(
-                  null,
-                  Array.from(new Uint8Array(credential.rawId))
-                )
-              ),
-            })
-          );
-        }
-      }
     };
 
     checkWalletExists();

@@ -20,18 +20,6 @@ const bufferToBase64 = (buffer: ArrayBuffer): string => {
   return window.btoa(binary);
 };
 
-/**
- * Base64 문자열을 ArrayBuffer로 변환합니다.
- */
-const base64ToBuffer = (base64: string): ArrayBuffer => {
-  const binary = window.atob(base64);
-  const buffer = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    buffer[i] = binary.charCodeAt(i);
-  }
-  return buffer.buffer;
-};
-
 // ------------------------------
 // Registration Logic
 // ------------------------------
@@ -162,9 +150,18 @@ const handleRegistration = async (
 // 인증 버튼 클릭 시 호출 (예시)
 // handleAuthentication 함수에선 등록 시 저장한 rawId(ArrayBuffer)를 사용합니다.
 const handleAuthentication = async (
-  storedRawId: ArrayBuffer
+  storedRawId?: string
 ): Promise<PublicKeyCredential | null> => {
-  const assertion = await authenticateCredential(storedRawId);
+  if (!storedRawId) {
+    console.error("storedRawId가 없습니다.");
+    return null;
+  }
+
+  // base64 문자열을 ArrayBuffer로 변환
+  const rawIdArray = Uint8Array.from(atob(storedRawId), (c) => c.charCodeAt(0));
+  const rawIdBuffer = rawIdArray.buffer;
+
+  const assertion = await authenticateCredential(rawIdBuffer);
   if (assertion) {
     console.log("인증 성공, assertion:", assertion);
   }
