@@ -8,6 +8,7 @@ import { useSpinner } from "../../contexts/SpinnerContext";
 import { Transaction, useXrplAccount } from "../../hooks/useXrplAccount";
 import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
+import { useTransactionDetail } from "../../contexts/TransactionDetailContext";
 dayjs.locale("ko");
 
 interface Friend {
@@ -20,6 +21,7 @@ const TransactionHistory: React.FC = () => {
   const { toast } = useUI();
   const { showSpinner, hideSpinner } = useSpinner();
   const { getTransactionHistory } = useXrplAccount();
+  const { openTransactionDetail } = useTransactionDetail();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [myWalletAddress, setMyWalletAddress] = useState<string>("");
@@ -93,6 +95,11 @@ const TransactionHistory: React.FC = () => {
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
     toast("주소가 복사되었습니다.", "success");
+  };
+
+  // 트랜잭션 상세 보기
+  const handleShowTransactionDetail = (hash: string) => {
+    openTransactionDetail(hash);
   };
 
   // 거래 내역 가져오기
@@ -170,6 +177,7 @@ const TransactionHistory: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
+            onClick={() => handleShowTransactionDetail(tx.hash)}
           >
             <div className={styles.cardHeader}>
               <div className={styles.dateTime}>
@@ -204,7 +212,10 @@ const TransactionHistory: React.FC = () => {
                       !findFriendByAddress(tx.fromAddress) && (
                         <button
                           className={styles.copyButton}
-                          onClick={() => handleCopyAddress(tx.fromAddress)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyAddress(tx.fromAddress);
+                          }}
                           aria-label="주소 복사"
                         >
                           [복사]
@@ -240,7 +251,10 @@ const TransactionHistory: React.FC = () => {
                       !findFriendByAddress(tx.toAddress) && (
                         <button
                           className={styles.copyButton}
-                          onClick={() => handleCopyAddress(tx.toAddress)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyAddress(tx.toAddress);
+                          }}
                           aria-label="주소 복사"
                         >
                           [복사]

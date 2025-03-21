@@ -13,6 +13,7 @@ import { CryptoPriceProvider } from "./contexts/CryptoPriceContext";
 import SignUp from "./feat-component/SignUp/SignUp";
 import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
+import { TransactionDetailProvider } from "./contexts/TransactionDetailContext";
 
 export type AccountResponse = {
   status: string;
@@ -96,24 +97,28 @@ function App() {
     <UIProvider>
       <SpinnerProvider>
         {hasWallet ? (
-          <SpeechProvider>
+          <BrowserRouter>
             <CryptoPriceProvider>
-              <BrowserRouter>
-                <Header />
-                <Routes>
-                  <Route path="/" element={<Main />} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route
-                    path="/transaction-history"
-                    element={<TransactionHistory />}
-                  />
-                  <Route path="/nft" element={<NftAccount />} />
-                  <Route path="/tickets" element={<TicketManager />} />
-                  <Route path="/verify" element={<TicketVerifier />} />
-                </Routes>
-              </BrowserRouter>
-            </CryptoPriceProvider>
-          </SpeechProvider>
+
+            <TransactionDetailProvider>
+              <SpeechProvider>
+                    <Header />
+                    <Routes>
+                      <Route path="/" element={<Main />} />
+                      <Route path="/wallet" element={<Wallet />} />
+                      <Route
+                        path="/transaction-history"
+                        element={<TransactionHistory />}
+                      />
+                      <Route path="/nft" element={<NftAccount />} />
+                      <Route path="/tickets" element={<TicketManager />} />
+                      <Route path="/verify" element={<TicketVerifier />} />
+                    </Routes>
+              </SpeechProvider>
+            </TransactionDetailProvider>
+          </CryptoPriceProvider>
+
+        </BrowserRouter>
         ) : (
           <>
             <BrowserRouter>

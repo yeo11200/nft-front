@@ -1,5 +1,6 @@
 import { LlmGenerateRequestDto } from "../types/llm/request.dto";
 import { LlmGenerateResponseDto } from "../types/llm/response.dto";
+import { TaskResponseDto } from "../types/task/response.dto";
 
 const generateTextOnClient = async (
   prompt: string,
@@ -41,4 +42,32 @@ const generateTextOnClient = async (
   return data as LlmGenerateResponseDto;
 };
 
-export { generateTextOnClient };
+/**
+ * Parse the LLM response to extract task information
+ * @param llmResponse The response from the LLM
+ * @returns Structured task response
+ */
+const parseTaskFromResponse = (llmResponse: string): TaskResponseDto | null => {
+  try {
+    // Try to parse the response as JSON
+    const taskResponse = JSON.parse(llmResponse) as TaskResponseDto;
+    
+    // Validate the structure
+    if (
+      taskResponse &&
+      typeof taskResponse.statusInfo === 'object' &&
+      (taskResponse.statusInfo.status === 'success' || taskResponse.statusInfo.status === 'fail') &&
+      typeof taskResponse.statusInfo.message === 'string' &&
+      typeof taskResponse.data === 'object'
+    ) {
+      return taskResponse;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Failed to parse LLM response as task:', error);
+    return null;
+  }
+};
+
+export { generateTextOnClient, parseTaskFromResponse };

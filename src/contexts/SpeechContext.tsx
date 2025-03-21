@@ -10,8 +10,12 @@ import useSpeechRecognition from "../hooks/useSpeechRecognition";
 import { FloatingVoiceUI } from "../components/FloatingVoiceUI";
 import { useSpinner } from "./SpinnerContext";
 import { playTTS } from "../utils/tts-api";
-import { generateTextOnClient } from "../services/llm.service";
-
+import { generateTextOnClient, parseTaskFromResponse } from "../services/llm.service";
+import { TaskName } from "../types/task/response.dto";
+import { useUI } from "./UIContext";
+import { useNavigate } from "react-router-dom";
+import { useXrplAccount } from "../hooks/useXrplAccount";
+import { useTransactionDetail } from "./TransactionDetailContext";
 type SpeechContextType = {
   transcript: string;
   isActive: boolean;
@@ -21,7 +25,44 @@ const SpeechContext = createContext<SpeechContextType | undefined>(undefined);
 
 export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const { showSpinner, hideSpinner } = useSpinner();
+  const { toast, confirm } = useUI();
+  const navigate = useNavigate();
+  const { sendPayment } = useXrplAccount();
+  const { openTransactionDetail } = useTransactionDetail();
 
+  const handleSendPayment = async (address: string, amount: string, message: string) => {
+    const userInfoStr = localStorage.getItem("userInfo");
+    const accountData = userInfoStr ? JSON.parse(userInfoStr) : null;
+  
+    if (!accountData) {
+      toast("계정 정보를 찾을 수 없습니다.", "error");
+      return;
+    }
+
+    const result = await confirm(
+      `송금 하실래요?`,
+      message,
+      {
+        confirmText: "송금",
+        cancelText: "취소",
+        confirmStyle: "primary",
+        onConfirmAction: async () => {
+          showSpinner("송금 중...");
+          await sendPayment({
+            fromAddress: accountData.address,
+            toAddress: address,
+            amount: parseFloat(amount),
+            secret: accountData.secret,
+          });
+          hideSpinner();
+          navigate("/transaction-history");
+        },
+      }
+    );
+    if (result) {
+      console.log("송금 진행");
+    }
+  };
   const { transcript, isActive, stop, start } = useSpeechRecognition({
     lang: "ko-KR",
     continuous: true,
@@ -31,11 +72,44 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       showSpinner("결과 처리 중...");
 
       stop();
-      const response = await generateTextOnClient(result).finally(() => {
+      const data = await generateTextOnClient(result).finally(() => {
         hideSpinner();
       });
-      if (response?.message) {
-        queueTTS(response.message);
+
+      const taskInfo = parseTaskFromResponse(data.response);
+
+      if (taskInfo) {
+        if (taskInfo.statusInfo.status === "success") {
+          switch (taskInfo.data.task) {
+            case TaskName.GET_ACCOUNT:
+              navigate("/wallet");
+              break;
+            case TaskName.PAYMENT_XRP:
+              if (taskInfo.data.parameters) {
+                const params = taskInfo.data.parameters as unknown as {
+                  toAddress: string;
+                  amount: number;
+                  message?: string;
+                };
+                
+                handleSendPayment(params.toAddress, params.amount.toString(), params.message || '');
+              }
+              break;
+            case TaskName.GET_TRANSACTION_HISTORY:
+              navigate("/transaction-history"); 
+              break;
+            case TaskName.GET_TRANSACTION_DETAIL:
+              const params = taskInfo.data.parameters as unknown as {
+                txHash: string,
+              };
+              openTransactionDetail(params.txHash);
+              break;
+          }
+        }
+        else {
+          toast(taskInfo.statusInfo.message, "error");
+          queueTTS(taskInfo.statusInfo.message);
+        }
       }
     },
   });

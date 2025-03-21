@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Client, Wallet, xrpToDrops, Payment, TransactionMetadata } from "xrpl";
+import { Wallet, xrpToDrops, TransactionMetadata } from "xrpl";
 import { getXrplClient } from "../utils/xrpl-client";
 
 // 계정 타입 정의
@@ -63,21 +63,6 @@ export const useXrplAccount = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
-  const [client, setClient] = useState<Client | null>(null);
-
-  // XRPL 클라이언트 초기화
-  useEffect(() => {
-    const initClient = async () => {
-      try {
-        const xrplClient = await getXrplClient();
-        setClient(xrplClient);
-      } catch (error) {
-        console.error("XRPL 클라이언트 초기화 중 오류 발생:", error);
-      }
-    };
-
-    initClient();
-  }, []);
 
   // 로컬 스토리지에서 계정 정보 불러오기
   useEffect(() => {
@@ -139,7 +124,7 @@ export const useXrplAccount = () => {
         setIsLoading(false);
       }
     },
-    [client]
+    []
   );
 
   // 계정 정보 조회 함수
@@ -292,7 +277,7 @@ export const useXrplAccount = () => {
         setIsLoading(false);
       }
     },
-    [client, account, getAccountInfo]
+    [account, getAccountInfo]
   );
 
   // 트랜잭션 내역 조회 함수
@@ -358,7 +343,7 @@ export const useXrplAccount = () => {
         setIsLoading(false);
       }
     },
-    [client, account]
+    [account]
   );
 
   // 트랜잭션 상세 정보 조회 함수
@@ -417,7 +402,7 @@ export const useXrplAccount = () => {
         setIsLoading(false);
       }
     },
-    [client]
+    []
   );
 
   return {
