@@ -196,7 +196,6 @@ const useSpeechRecognition = ({
       if (!isApiRef.current) {
         setTranscript("");
         setIsActive(false);
-        isRecognizing.current = true;
         console.log("Recognition started");
 
         // 이전 무음 감지 타이머 제거
