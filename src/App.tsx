@@ -14,7 +14,6 @@ import SignUp from "./feat-component/SignUp/SignUp";
 import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
 import { TransactionDetailProvider } from "./contexts/TransactionDetailContext";
-import { handleRegistration } from "./utils/auto";
 
 export type AccountResponse = {
   status: string;

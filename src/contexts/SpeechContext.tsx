@@ -19,7 +19,7 @@ import { useUI } from "./UIContext";
 import { useNavigate } from "react-router-dom";
 import { useXrplAccount } from "../hooks/useXrplAccount";
 import { useTransactionDetail } from "./TransactionDetailContext";
-import { handleAuthentication } from "../utils/auto";
+import { handleAuthentication, handleRegistration } from "../utils/auto";
 type SpeechContextType = {
   transcript: string;
   isActive: boolean;
@@ -42,35 +42,76 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     const userInfoStr = localStorage.getItem("userInfo");
     const accountData = userInfoStr ? JSON.parse(userInfoStr) : null;
 
+    // 생체 인증 지원 여부 확인
+    if (!window.PublicKeyCredential) {
+      toast("이 브라우저는 생체 인증을 지원하지 않습니다.", "error");
+      hideSpinner();
+      return false;
+    }
+
     if (!accountData) {
       toast("계정 정보를 찾을 수 없습니다.", "error");
       return;
     }
 
-    const result = await confirm(`송금 하실래요?`, message, {
-      confirmText: "송금",
-      cancelText: "취소",
-      confirmStyle: "primary",
-      onConfirmAction: async () => {
-        showSpinner("송금 중...");
-        const res = await sendPayment({
-          fromAddress: accountData.address,
-          toAddress: address,
-          amount: parseFloat(amount),
-          secret: accountData.secret,
-        });
+    const nickname = localStorage.getItem("userInfo")
+      ? JSON.parse(localStorage.getItem("userInfo")!).userId
+      : "사용자";
 
-        hideSpinner();
+    let autoLogin = localStorage.getItem("autoLogin");
 
-        navigate("/transaction-history");
-        console.log("result", res);
-        if (res?.transaction) {
-          openTransactionDetail(res.transaction.hash);
-        }
-      },
-    });
-    if (result) {
-      console.log("송금 진행");
+    // 생체 인증 등록 시도
+    if (!autoLogin) {
+      const credential = await handleRegistration(nickname, address);
+      console.log("credential", credential);
+      if (!credential) {
+        toast("생체 인증 등록에 실패했습니다.", "error");
+        return false;
+      }
+
+      const autoLoginData = {
+        credentialId: credential.id,
+        rawId: btoa(
+          String.fromCharCode.apply(
+            null,
+            Array.from(new Uint8Array(credential.rawId))
+          )
+        ),
+      };
+      localStorage.setItem("autoLogin", JSON.stringify(autoLoginData));
+
+      autoLogin = JSON.stringify(autoLoginData);
+    }
+
+    // 바로 인증 시도
+    const authResult = await handleAuthentication(JSON.parse(autoLogin!).rawId);
+
+    if (authResult) {
+      const result = await confirm(`송금 하실래요?`, message, {
+        confirmText: "송금",
+        cancelText: "취소",
+        confirmStyle: "primary",
+        onConfirmAction: async () => {
+          showSpinner("송금 중...");
+          const res = await sendPayment({
+            fromAddress: accountData.address,
+            toAddress: address,
+            amount: parseFloat(amount),
+            secret: accountData.secret,
+          });
+
+          hideSpinner();
+
+          navigate("/transaction-history");
+          console.log("result", res);
+          if (res?.transaction) {
+            openTransactionDetail(res.transaction.hash);
+          }
+        },
+      });
+      if (result) {
+        console.log("송금 진행");
+      }
     }
   };
   const { transcript, isActive, stop, start } = useSpeechRecognition({
