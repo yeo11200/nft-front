@@ -10,11 +10,13 @@ const generateTextOnClient = async (
 
   // userInfo에서 secret 속성 제거
   if (userInfo && userInfo.secret) {
-    const { secret, ...userInfoWithoutSecret } = userInfo;
+    const { secret, balance, ...userInfoWithoutSecret } = userInfo;
     userInfo = userInfoWithoutSecret;
   }
 
-  const friends = JSON.parse(localStorage.getItem("friends") || "[]");
+  const friendsData = JSON.parse(localStorage.getItem("friends") || "[]");
+  // Filter friends to only include nickname and address
+  const friends = friendsData.map(({ nickname, address }) => ({ nickname, address }));
 
   const requestBody: LlmGenerateRequestDto = {
     prompt,
