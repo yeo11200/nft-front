@@ -76,6 +76,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     lang: "ko-KR",
     continuous: true,
     autoStart: false,
+    noiseLevel: "noisy",
     onResult: async (result) => {
       console.log("결과 처리 시작:", result);
       showSpinner("결과 처리 중...");

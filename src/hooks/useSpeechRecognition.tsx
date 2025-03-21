@@ -21,6 +21,9 @@ export type UseSpeechRecognitionOptions = {
   continuous?: boolean;
   autoStart?: boolean;
   onResult?: (result: string) => Promise<void>;
+  silenceTimeout?: number; // 침묵 감지 시간 (ms)
+  maxDuration?: number; // 최대 인식 시간 (ms)
+  noiseLevel?: "quiet" | "moderate" | "noisy"; // 환경 소음 수준 설정 추가
 };
 
 /**
@@ -44,6 +47,25 @@ export type UseSpeechRecognitionReturn = {
   readText: (text: string) => void;
 };
 
+// 인터페이스 정의 추가
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: (event: any) => void;
+  onerror: (event: any) => void;
+  onend: () => void;
+  onstart: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognition;
+}
+
 /**
  * 음성 인식 커스텀 훅
  *
@@ -62,17 +84,21 @@ const useSpeechRecognition = ({
   continuous = false,
   autoStart = true,
   onResult,
+  silenceTimeout = 1500, // 1.5초로 단축
+  maxDuration = 3000,
+  noiseLevel = "moderate", // 기본값은 보통 소음 환경
 }: UseSpeechRecognitionOptions = {}): UseSpeechRecognitionReturn => {
   // Web Speech API 브라우저 지원 확인
   const SpeechRecognition =
     (window as any).SpeechRecognition ||
-    (window as any).webkitSpeechRecognition;
+    ((window as any).webkitSpeechRecognition as SpeechRecognitionConstructor);
 
   // 상태 관리
   const [transcript, setTranscript] = useState<string>(""); // 인식된 텍스트
   const [error, setError] = useState<string | null>(null); // 에러 메시지
   const [transcripts, setTranscripts] = useState<string[]>([]); // 전체 트랜스크립트 배열 상태 추가
   const [isActive, setIsActive] = useState<boolean>(false); // 실제 음성 감지 상태
+  const [isListening, setIsListening] = useState(false);
 
   // recognition 인스턴스 참조 저장 (리렌더링 간 유지)
   const recognitionRef = useRef<typeof SpeechRecognition | null>(null);
@@ -83,9 +109,30 @@ const useSpeechRecognition = ({
   // 자동 재시작 타이머 ref
   const restartTimerRef = useRef<NodeJS.Timeout>();
   // 무음 감지 타이머 ref (음성이 없는 상태가 지속되는지 체크)
-  const silenceTimerRef = useRef<NodeJS.Timeout>();
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const processingResultRef = useRef<boolean>(false); // API 호출 중 상태 추적
+  const timeoutCountRef = useRef<number>(0); // 연속 침묵 감지 횟수
 
   const isApiRef = useRef<boolean>(false);
+
+  const noSpeechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const microphoneStreamRef = useRef<MediaStream | null>(null);
+  const audioMonitorIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const silenceCounterRef = useRef<number>(0);
+  const activeCounterRef = useRef<number>(0);
+
+  // 환경에 따른 설정 추가
+  interface UseSpeechRecognitionProps {
+    onResult?: (transcript: string) => Promise<any>;
+    language?: string;
+    continuous?: boolean;
+    silenceTimeout?: number;
+    maxDuration?: number;
+    noiseLevel?: "quiet" | "moderate" | "noisy"; // 환경 소음 수준 설정 추가
+  }
 
   /**
    * 음성 인식 시작 함수
@@ -96,6 +143,7 @@ const useSpeechRecognition = ({
       console.log("Starting recognition");
       isApiRef.current = false;
       isRecognizing.current = isTtsApi;
+      clearAllTimers();
       setTranscripts([]); // 시작할 때 배열 초기화
       recognitionRef.current?.start();
     } catch (e: any) {
@@ -173,6 +221,351 @@ const useSpeechRecognition = ({
     },
     [lang, start, stop]
   );
+
+  // 모든 타이머 정리 함수
+  const clearAllTimers = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
+    if (durationTimerRef.current) {
+      clearTimeout(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
+
+    if (noSpeechTimeoutRef.current) {
+      clearTimeout(noSpeechTimeoutRef.current);
+      noSpeechTimeoutRef.current = null;
+    }
+
+    if (audioMonitorIntervalRef.current) {
+      clearInterval(audioMonitorIntervalRef.current);
+      audioMonitorIntervalRef.current = null;
+    }
+
+    if (microphoneStreamRef.current) {
+      microphoneStreamRef.current.getTracks().forEach((track) => track.stop());
+      microphoneStreamRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      if (audioContextRef.current.state !== "closed") {
+        audioContextRef.current.close();
+      }
+      audioContextRef.current = null;
+      analyserRef.current = null;
+    }
+  }, []);
+
+  // 인식 결과 처리 함수
+  const processResult = useCallback(
+    async (finalTranscript: string) => {
+      if (!finalTranscript || processingResultRef.current) return;
+
+      try {
+        processingResultRef.current = true;
+        setIsActive(false);
+
+        console.log("음성 인식 결과 처리 시작:", finalTranscript);
+
+        if (onResult) {
+          await onResult(finalTranscript);
+          console.log("음성 인식 결과 처리 완료");
+        }
+      } catch (err) {
+        console.error("음성 인식 결과 처리 중 오류:", err);
+        setError(
+          `결과 처리 오류: ${
+            err instanceof Error ? err.message : "알 수 없는 오류"
+          }`
+        );
+      } finally {
+        processingResultRef.current = false;
+        stopListening();
+      }
+    },
+    [onResult]
+  );
+
+  // 마이크 오디오 레벨 모니터링 설정
+  const setupAudioMonitoring = useCallback(async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn("오디오 모니터링이 지원되지 않는 브라우저입니다");
+        return;
+      }
+
+      // 기존 리소스 정리
+      if (microphoneStreamRef.current) {
+        microphoneStreamRef.current
+          .getTracks()
+          .forEach((track) => track.stop());
+      }
+
+      if (
+        audioContextRef.current &&
+        audioContextRef.current.state !== "closed"
+      ) {
+        audioContextRef.current.close();
+      }
+
+      // 새 오디오 컨텍스트 생성
+      const audioContext = new (window.AudioContext || window.AudioContext)();
+      audioContextRef.current = audioContext;
+
+      // 마이크 액세스 요청
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false,
+      });
+      microphoneStreamRef.current = stream;
+
+      // 오디오 분석기 설정
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
+
+      const microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+
+      // 볼륨 모니터링 인터벌 설정
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      if (audioMonitorIntervalRef.current) {
+        clearInterval(audioMonitorIntervalRef.current);
+      }
+
+      // 환경에 따른 임계값 설정
+      let audioThreshold = 10; // 기본 임계값
+      let consecutiveSilenceThreshold = 10; // 기본 침묵 카운터 임계값
+
+      switch (noiseLevel) {
+        case "quiet":
+          audioThreshold = 8;
+          consecutiveSilenceThreshold = 8;
+          break;
+        case "moderate":
+          audioThreshold = 15;
+          consecutiveSilenceThreshold = 12;
+          break;
+        case "noisy":
+          audioThreshold = 25; // 시끄러운 환경에선 임계값 높임
+          consecutiveSilenceThreshold = 15; // 더 많은 침묵 프레임 요구
+          break;
+      }
+
+      // 볼륨 히스토리 배열 추가
+      const volumeHistory: number[] = [];
+
+      audioMonitorIntervalRef.current = setInterval(() => {
+        if (!analyserRef.current || processingResultRef.current) return;
+
+        analyserRef.current.getByteFrequencyData(dataArray);
+        const average =
+          dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
+
+        // 볼륨 데이터 저장
+        volumeHistory.push(average);
+        if (volumeHistory.length > 5) volumeHistory.shift();
+
+        // 이전 activeVolumeHistory 참조를 volumeHistory로 변경
+        if (average > audioThreshold) {
+          const isVoicePattern =
+            volumeHistory.length >= 3 &&
+            average > volumeHistory[volumeHistory.length - 2];
+
+          if (isVoicePattern) {
+            lastSpeechTimestampRef.current = Date.now();
+            silenceCounterRef.current = 0;
+            activeCounterRef.current++;
+
+            if (!isActive && activeCounterRef.current > 3) {
+              setIsActive(true);
+            }
+          }
+        } else {
+          silenceCounterRef.current++;
+          activeCounterRef.current = Math.max(0, activeCounterRef.current - 1);
+
+          // 환경에 맞게 조정된 침묵 감지
+          if (
+            silenceCounterRef.current > consecutiveSilenceThreshold &&
+            transcript
+          ) {
+            const silenceDuration = Date.now() - lastSpeechTimestampRef.current;
+
+            if (silenceDuration > silenceTimeout) {
+              console.log(`오디오 레벨 침묵 감지: ${silenceDuration}ms`);
+
+              if (isActive) {
+                setIsActive(false);
+
+                // 0.5초 더 대기 후 결과 처리
+                if (silenceTimerRef.current) {
+                  clearTimeout(silenceTimerRef.current);
+                }
+
+                silenceTimerRef.current = setTimeout(() => {
+                  if (
+                    transcript &&
+                    Date.now() - lastSpeechTimestampRef.current >
+                      silenceTimeout * 1.5
+                  ) {
+                    processResult(transcript);
+                  }
+                }, 500);
+              }
+            }
+          }
+        }
+      }, 100); // 100ms마다 오디오 레벨 체크
+    } catch (err) {
+      console.error("오디오 모니터링 설정 오류:", err);
+    }
+  }, [isActive, processResult, silenceTimeout, transcript, noiseLevel]);
+
+  // 음성 인식 시작
+  const startListening = useCallback(() => {
+    if (isListening || processingResultRef.current) return;
+
+    try {
+      setError(null);
+      setTranscript("");
+      timeoutCountRef.current = 0;
+      silenceCounterRef.current = 0;
+      activeCounterRef.current = 0;
+      lastSpeechTimestampRef.current = Date.now();
+
+      // 브라우저 지원 확인
+      if (
+        !("webkitSpeechRecognition" in window) &&
+        !("SpeechRecognition" in window)
+      ) {
+        throw new Error("이 브라우저는 음성 인식을 지원하지 않습니다");
+      }
+
+      // 오디오 모니터링 설정
+      setupAudioMonitoring();
+
+      const recognition = new SpeechRecognition();
+
+      recognition.lang = lang;
+      recognition.continuous = continuous;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        console.log("음성 인식 시작");
+        setIsListening(true);
+        setIsActive(false); // 최초에는 비활성 상태로 시작
+
+        // 최대 지속 시간 타이머
+        durationTimerRef.current = setTimeout(() => {
+          if (transcript) {
+            processResult(transcript);
+          } else {
+            stopListening();
+          }
+        }, maxDuration);
+
+        // 초기 음성 없음 타임아웃
+        noSpeechTimeoutRef.current = setTimeout(() => {
+          if (!transcript) {
+            console.log("음성이 감지되지 않아 중지합니다");
+            stopListening();
+          }
+        }, 7000); // 7초 동안 음성이 없으면 중지
+      };
+
+      recognition.onresult = async (event: any) => {
+        const result = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join("");
+
+        setTranscript(result);
+
+        if (onResult) {
+          try {
+            // onResult가 Promise를 반환한다면 await
+            await onResult(result);
+          } catch (error) {
+            console.error("결과 처리 중 오류:", error);
+          }
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error("음성 인식 오류:", event.error);
+
+        if (event.error === "no-speech") {
+          console.log("음성이 감지되지 않았습니다");
+          // 이미 텍스트가 있다면 처리, 없다면 다시 시작
+          if (transcript) {
+            processResult(transcript);
+          } else if (isListening && !processingResultRef.current) {
+            stopListening();
+            setTimeout(startListening, 300);
+          }
+        } else {
+          setError(`인식 오류: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        console.log("음성 인식 종료");
+
+        // 자동 재시작 로직
+        if (isListening && !processingResultRef.current) {
+          console.log("음성 인식 자동 재시작");
+          try {
+            recognition.start();
+          } catch (e) {
+            console.error("재시작 오류:", e);
+            setIsListening(false);
+          }
+        } else {
+          setIsListening(false);
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error("음성 인식 시작 오류:", err);
+      setError(
+        `시작 오류: ${err instanceof Error ? err.message : "알 수 없는 오류"}`
+      );
+      setIsListening(false);
+      setIsActive(false);
+      clearAllTimers();
+    }
+  }, [
+    isListening,
+    lang,
+    continuous,
+    maxDuration,
+    silenceTimeout,
+    transcript,
+    setupAudioMonitoring,
+    processResult,
+    clearAllTimers,
+  ]);
+
+  // 음성 인식 중지
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.error("음성 인식 중지 오류:", err);
+      }
+    }
+
+    setIsListening(false);
+    setIsActive(false);
+    clearAllTimers();
+  }, [clearAllTimers]);
 
   useEffect(() => {
     // 브라우저 지원 확인
@@ -264,6 +657,12 @@ const useSpeechRecognition = ({
         if (silenceTimerRef.current) {
           clearTimeout(silenceTimerRef.current);
         }
+
+        console.log(
+          "lastSpeechTimestampRef.current",
+          lastSpeechTimestampRef.current,
+          Date.now()
+        );
 
         silenceTimerRef.current = setTimeout(async () => {
           if (Date.now() - lastSpeechTimestampRef.current > 1000) {
