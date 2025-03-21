@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import styles from "./Header.module.scss";
 
 interface HeaderProps {
@@ -10,6 +10,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ showUserInfo = true }) => {
   const [nickname, setNickname] = useState<string>("사용자");
   const navigate = useNavigate();
+  const location = useLocation();
+  const [hoveredLink, setHoveredLink] = useState<string | null>(null);
 
   useEffect(() => {
     // 로컬 스토리지에서 사용자 정보 가져오기
@@ -26,8 +28,17 @@ const Header: React.FC<HeaderProps> = ({ showUserInfo = true }) => {
     }
   }, []);
 
+  // 경로 변경 감지 및 상태 업데이트
+  // useEffect(() => {
+  //   setCurrentPath(location.pathname);
+  // }, [location.pathname]);
+
   const handleLogoClick = () => {
     navigate("/");
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
   };
 
   return (
@@ -59,21 +70,34 @@ const Header: React.FC<HeaderProps> = ({ showUserInfo = true }) => {
         )}
       </div>
 
-      <div className={styles.navLinks}>
+      <div
+        className={styles.navLinks}
+        onMouseLeave={() => setHoveredLink(null)}
+      >
         <Link to="/wallet">
           <motion.div
-            className={styles.navLink}
+            className={`${styles.navLink} ${
+              isActive("/wallet") ? styles.active : ""
+            } ${hoveredLink && hoveredLink !== "/wallet" ? styles.dimmed : ""}`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onMouseEnter={() => setHoveredLink("/wallet")}
           >
             지갑
           </motion.div>
         </Link>
         <Link to="/transaction-history">
           <motion.div
-            className={styles.navLink}
+            className={`${styles.navLink} ${
+              isActive("/transaction-history") ? styles.active : ""
+            } ${
+              hoveredLink && hoveredLink !== "/transaction-history"
+                ? styles.dimmed
+                : ""
+            }`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onMouseEnter={() => setHoveredLink("/transaction-history")}
           >
             거래내역
           </motion.div>
