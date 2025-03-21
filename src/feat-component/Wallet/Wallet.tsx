@@ -7,6 +7,7 @@ import { useXrplAccount } from "../../hooks/useXrplAccount";
 import { useSpinner } from "../../contexts/SpinnerContext";
 import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
+import { useTransactionDetail } from "../../contexts/TransactionDetailContext";
 
 export interface Friend {
   nickname: string;
@@ -17,6 +18,7 @@ export interface Friend {
 const Wallet = () => {
   const [isLoading, setIsLoading] = useState(false);
 
+  const { openTransactionDetail } = useTransactionDetail();
   const [accountData, setAccountData] = useState<AccountResponseDto["account"]>(
     {
       address: "",
@@ -33,20 +35,25 @@ const Wallet = () => {
   const handleSendPayment = async (friend: Friend) => {
     const result = await confirm(
       `송금 하실래요?`,
-      `"${friend.nickname}"님에게 ${friend.address}로 송금하시겠습니까?`,
+      `${friend.nickname}에게 1 XRP를 보내는 작업을 준비했어요.  인증 해주시면 바로 보낼게요!`,
       {
         confirmText: "송금",
         cancelText: "취소",
         confirmStyle: "primary",
         onConfirmAction: async () => {
           showSpinner("송금 중...");
-          await sendPayment({
+          const res = await sendPayment({
             fromAddress: accountData.address,
             toAddress: friend.address,
             amount: 1,
             secret: accountData.secret,
           });
 
+          console.log("result", res?.transaction);
+
+          if (res?.transaction) {
+            openTransactionDetail(res.transaction.hash);
+          }
           const data = await getAccountInfo(accountData.address);
 
           if (data.account) {

@@ -52,14 +52,20 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       confirmStyle: "primary",
       onConfirmAction: async () => {
         showSpinner("송금 중...");
-        await sendPayment({
+        const res = await sendPayment({
           fromAddress: accountData.address,
           toAddress: address,
           amount: parseFloat(amount),
           secret: accountData.secret,
         });
+
         hideSpinner();
+
         navigate("/transaction-history");
+        console.log("result", res);
+        if (res?.transaction) {
+          openTransactionDetail(res.transaction.hash);
+        }
       },
     });
     if (result) {
@@ -115,7 +121,6 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               break;
           }
         } else {
-          toast(taskInfo.statusInfo.message, "error");
           queueTTS(taskInfo.statusInfo.message);
         }
       }
@@ -137,6 +142,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("TTS 재생 시작:", nextText);
       stop();
+      toast(nextText, "error");
+
       await playTTS(nextText).catch((err) => {
         console.error("TTS 재생 오류:", err);
       });
@@ -166,6 +173,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const handleClick = useCallback(() => {
+    stop();
+
     start(false);
   }, [start]);
 
