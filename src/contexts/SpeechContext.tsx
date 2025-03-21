@@ -181,9 +181,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const handleClick = useCallback(() => {
     stop();
 
-    setTimeout(() => {
-      start(false);
-    }, 200);
+    start(false);
   }, [start]);
 
   useEffect(() => {
