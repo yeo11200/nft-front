@@ -8,6 +8,7 @@ import { useSpinner } from "../../contexts/SpinnerContext";
 import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
 import { useTransactionDetail } from "../../contexts/TransactionDetailContext";
+import { handleAuthentication } from "../../utils/auto";
 
 export interface Friend {
   nickname: string;
@@ -33,6 +34,27 @@ const Wallet = () => {
   const { toast, confirm } = useUI();
 
   const handleSendPayment = async (friend: Friend) => {
+    // 로컬 스토리지에서 저장된 credential 정보 가져오기
+    const credentialData = localStorage.getItem("credential");
+    if (!credentialData) {
+      toast("등록된 생체 인증 정보가 없습니다.", "error");
+      return;
+    }
+
+    const { rawId } = JSON.parse(credentialData);
+
+    // base64 문자열을 ArrayBuffer로 변환
+    const rawIdArray = Uint8Array.from(atob(rawId), (c) => c.charCodeAt(0));
+    const rawIdBuffer = rawIdArray.buffer;
+
+    // 생체 인증 수행
+    const authResult = await handleAuthentication(rawIdBuffer);
+
+    if (!authResult) {
+      toast("생체 인증에 실패했습니다.", "error");
+      return;
+    }
+
     const result = await confirm(
       `송금 하실래요?`,
       `${friend.nickname}에게 1 XRP를 보내는 작업을 준비했어요.  인증 해주시면 바로 보낼게요!`,

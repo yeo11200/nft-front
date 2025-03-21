@@ -19,6 +19,7 @@ import { useUI } from "./UIContext";
 import { useNavigate } from "react-router-dom";
 import { useXrplAccount } from "../hooks/useXrplAccount";
 import { useTransactionDetail } from "./TransactionDetailContext";
+import { handleAuthentication } from "../utils/auto";
 type SpeechContextType = {
   transcript: string;
   isActive: boolean;
@@ -38,6 +39,27 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     amount: string,
     message: string
   ) => {
+    // 로컬 스토리지에서 저장된 credential 정보 가져오기
+    const credentialData = localStorage.getItem("credential");
+    if (!credentialData) {
+      toast("등록된 생체 인증 정보가 없습니다.", "error");
+      return;
+    }
+
+    const { rawId } = JSON.parse(credentialData);
+
+    // base64 문자열을 ArrayBuffer로 변환
+    const rawIdArray = Uint8Array.from(atob(rawId), (c) => c.charCodeAt(0));
+    const rawIdBuffer = rawIdArray.buffer;
+
+    // 생체 인증 수행
+    const authResult = await handleAuthentication(rawIdBuffer);
+
+    if (!authResult) {
+      toast("생체 인증에 실패했습니다.", "error");
+      return;
+    }
+
     const userInfoStr = localStorage.getItem("userInfo");
     const accountData = userInfoStr ? JSON.parse(userInfoStr) : null;
 

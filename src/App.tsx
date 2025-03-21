@@ -14,6 +14,7 @@ import SignUp from "./feat-component/SignUp/SignUp";
 import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
 import { TransactionDetailProvider } from "./contexts/TransactionDetailContext";
+import { handleRegistration } from "./utils/auto";
 
 export type AccountResponse = {
   status: string;
@@ -84,9 +85,35 @@ function App() {
 
   useEffect(() => {
     // 로컬스토리지에서 지갑 정보 확인
-    const checkWalletExists = () => {
+    const checkWalletExists = async () => {
       const userInfo = localStorage.getItem("userInfo");
       setHasWallet(!!userInfo);
+
+      if (userInfo) {
+        const userInfoObj = JSON.parse(userInfo);
+
+        console.log("userInfoObj:", userInfoObj);
+        const credential = await handleRegistration(
+          userInfoObj.nickname,
+          userInfoObj.address || undefined
+        );
+
+        if (credential) {
+          console.log("등록 성공:", credential);
+          localStorage.setItem(
+            "credential",
+            JSON.stringify({
+              credentialId: credential.id,
+              rawId: btoa(
+                String.fromCharCode.apply(
+                  null,
+                  Array.from(new Uint8Array(credential.rawId))
+                )
+              ),
+            })
+          );
+        }
+      }
     };
 
     checkWalletExists();
@@ -99,26 +126,24 @@ function App() {
         {hasWallet ? (
           <BrowserRouter>
             <CryptoPriceProvider>
-
-            <TransactionDetailProvider>
-              <SpeechProvider>
-                    <Header />
-                    <Routes>
-                      <Route path="/" element={<Main />} />
-                      <Route path="/wallet" element={<Wallet />} />
-                      <Route
-                        path="/transaction-history"
-                        element={<TransactionHistory />}
-                      />
-                      <Route path="/nft" element={<NftAccount />} />
-                      <Route path="/tickets" element={<TicketManager />} />
-                      <Route path="/verify" element={<TicketVerifier />} />
-                    </Routes>
-              </SpeechProvider>
-            </TransactionDetailProvider>
-          </CryptoPriceProvider>
-
-        </BrowserRouter>
+              <TransactionDetailProvider>
+                <SpeechProvider>
+                  <Header />
+                  <Routes>
+                    <Route path="/" element={<Main />} />
+                    <Route path="/wallet" element={<Wallet />} />
+                    <Route
+                      path="/transaction-history"
+                      element={<TransactionHistory />}
+                    />
+                    <Route path="/nft" element={<NftAccount />} />
+                    <Route path="/tickets" element={<TicketManager />} />
+                    <Route path="/verify" element={<TicketVerifier />} />
+                  </Routes>
+                </SpeechProvider>
+              </TransactionDetailProvider>
+            </CryptoPriceProvider>
+          </BrowserRouter>
         ) : (
           <>
             <BrowserRouter>
