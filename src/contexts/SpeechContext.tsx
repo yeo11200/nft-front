@@ -166,7 +166,11 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               const params = taskInfo.data.parameters as unknown as {
                 txHash: string;
               };
-              openTransactionDetail(params.txHash);
+              if (params.txHash) {
+                openTransactionDetail(params.txHash);
+              } else {
+                queueTTS("트랜잭션 해시를 찾을 수 없습니다.");
+              }
               break;
           }
         } else {
