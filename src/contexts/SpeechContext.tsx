@@ -215,20 +215,12 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
                 amount: string;
               };
 
-              const tokens = JSON.parse(localStorage.getItem("tokens") || "[]");
-
-              const token = tokens.find(
-                (token) => token.currency === tokenParams?.currency || ""
+              handleOpenPopup(
+                tokenParams?.currency || "ABC",
+                "rNo2tAqkdM7g189BjqV9USZo1PtaM6S27t",
+                tokenParams.xrpAmount || "10",
+                tokenParams.amount || "10"
               );
-
-              if (token) {
-                handleOpenPopup(
-                  token.currency,
-                  token.account,
-                  tokenParams.xrpAmount || "10",
-                  tokenParams.amount || "10"
-                );
-              }
               break;
             default:
               navigate("/wallet");
@@ -359,6 +351,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     stop();
+
+    handleOpenPopup("ABC", "rNo2tAqkdM7g189BjqV9USZo1PtaM6S27t", "10", "10");
   }, [stop]);
 
   return (

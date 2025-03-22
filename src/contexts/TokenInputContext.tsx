@@ -310,14 +310,6 @@ export const TokenInputProvider: React.FC<TokenInputProviderProps> = ({
     initialTokenAmount?: string,
     onConfirm?: (xrpAmount: string, tokenAmount: string) => void
   ) => {
-    console.log(
-      currency,
-      currencyIcon,
-      issuer,
-      onConfirm,
-      initialXrpAmount,
-      initialTokenAmount
-    );
     setPopupState({
       isOpen: true,
       currency,
