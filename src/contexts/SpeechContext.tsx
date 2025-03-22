@@ -200,10 +200,10 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               break;
             case TaskName.GET_FRIEND_DETAIL:
               const friendParams = taskInfo.data.parameters as unknown as {
-                friendAddress: string;
+                friendName: string;
               };
-              if (friendParams.friendAddress) {
-                handleFriendClick(friendParams.friendAddress);
+              if (friendParams.friendName) {
+                handleFriendClick(friendParams.friendName);
               }
               break;
             case TaskName.GET_FRIEND_LIST:
@@ -216,12 +216,19 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
                 xrpAmount: string;
                 tokenAmount: string;
               };
-              if (tokenParams) {
+
+              const tokens = JSON.parse(localStorage.getItem("tokens") || "[]");
+
+              const token = tokens.find(
+                (token) => token.currency === tokenParams.currency
+              );
+
+              if (token) {
                 handleOpenPopup(
-                  tokenParams.currency,
-                  tokenParams.account,
-                  tokenParams.xrpAmount,
-                  tokenParams.tokenAmount
+                  token.currency,
+                  token.account,
+                  tokenParams.xrpAmount || "10",
+                  tokenParams.tokenAmount || "10"
                 );
               }
               break;
@@ -296,12 +303,16 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     setIsOpen(!isOpen);
   }, [start, stop, isOpen]);
 
-  const handleFriendClick = (friendAddress: string) => {
+  const handleFriendClick = (friendName: string) => {
     const friends = JSON.parse(localStorage.getItem("friends") || "[]");
 
-    const friend = friends.find(
-      (friend: Friend) => friend.address === friendAddress
+    let friend = friends.find(
+      (friend: Friend) => friend.nickname === friendName
     ) as Friend;
+
+    if (!friend) {
+      friend = friends[0];
+    }
 
     setSelectedFriend(friend);
     setIsModalOpen(true);
