@@ -24,6 +24,7 @@ export type UseSpeechRecognitionOptions = {
   silenceTimeout?: number; // 침묵 감지 시간 (ms)
   maxDuration?: number; // 최대 인식 시간 (ms)
   noiseLevel?: "quiet" | "moderate" | "noisy"; // 환경 소음 수준 설정 추가
+  handleIsOpen?: (isOpen: boolean) => void;
 };
 
 /**
@@ -87,6 +88,7 @@ const useSpeechRecognition = ({
   silenceTimeout = 1500, // 1.5초로 단축
   maxDuration = 3000,
   noiseLevel = "moderate", // 기본값은 보통 소음 환경
+  handleIsOpen = () => {},
 }: UseSpeechRecognitionOptions = {}): UseSpeechRecognitionReturn => {
   // Web Speech API 브라우저 지원 확인
   const SpeechRecognition =
@@ -123,16 +125,6 @@ const useSpeechRecognition = ({
   const audioMonitorIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const silenceCounterRef = useRef<number>(0);
   const activeCounterRef = useRef<number>(0);
-
-  // 환경에 따른 설정 추가
-  interface UseSpeechRecognitionProps {
-    onResult?: (transcript: string) => Promise<any>;
-    language?: string;
-    continuous?: boolean;
-    silenceTimeout?: number;
-    maxDuration?: number;
-    noiseLevel?: "quiet" | "moderate" | "noisy"; // 환경 소음 수준 설정 추가
-  }
 
   /**
    * 음성 인식 시작 함수
@@ -496,6 +488,8 @@ const useSpeechRecognition = ({
       };
 
       recognition.onerror = (event) => {
+        handleIsOpen(false);
+
         console.error("음성 인식 오류:", event.error);
 
         if (event.error === "no-speech") {
@@ -505,7 +499,6 @@ const useSpeechRecognition = ({
             processResult(transcript);
           } else if (isListening && !processingResultRef.current) {
             stopListening();
-            setTimeout(startListening, 300);
           }
         } else {
           setError(`인식 오류: ${event.error}`);
@@ -550,6 +543,7 @@ const useSpeechRecognition = ({
     setupAudioMonitoring,
     processResult,
     clearAllTimers,
+    handleIsOpen,
   ]);
 
   // 음성 인식 중지
@@ -606,6 +600,8 @@ const useSpeechRecognition = ({
       console.log("Recognition ended");
       console.log("isApiRef.current: recognition.onend", isApiRef.current);
       console.log("isRecognizing", isRecognizing.current);
+      handleIsOpen(false);
+
       // 의도적인 중지가 아닐 경우 자동으로 재시작
       if (isRecognizing.current) {
         restartTimerRef.current = setTimeout(() => {

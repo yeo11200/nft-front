@@ -143,6 +143,10 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     continuous: true,
     autoStart: false,
     noiseLevel: "noisy",
+    handleIsOpen: (isOpen: boolean) => {
+      console.log("isOpen", isOpen);
+      setIsOpen(isOpen);
+    },
     onResult: async (result) => {
       console.log("결과 처리 시작:", result);
       showSpinner("결과 처리 중...");
@@ -285,14 +289,12 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const handleClick = useCallback(() => {
     stop();
 
-    start(false);
-    setIsOpen((prev) => {
-      if (!prev) {
-        return true;
-      }
-      return prev;
-    });
-  }, [start, stop]);
+    console.log("isOpen", isOpen);
+    if (!isOpen) {
+      start(false);
+    }
+    setIsOpen(!isOpen);
+  }, [start, stop, isOpen]);
 
   const handleFriendClick = (friendAddress: string) => {
     const friends = JSON.parse(localStorage.getItem("friends") || "[]");
