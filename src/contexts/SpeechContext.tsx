@@ -25,6 +25,7 @@ import FriendDetailModal, {
   Friend,
 } from "../feat-component/FriendList/components/FriendDetailModal";
 import { useTokenInput } from "./TokenInputContext";
+import { formatDateToKorean, getLast7Days } from "@/utils/common";
 
 type SpeechContextType = {
   transcript: string;
@@ -37,7 +38,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const { showSpinner, hideSpinner } = useSpinner();
   const { toast, confirm } = useUI();
   const navigate = useNavigate();
-  const { sendPayment } = useXrplAccount();
+  const { sendPayment, getTransactionHistory } = useXrplAccount();
   const { openTransactionDetail } = useTransactionDetail();
   const { openTokenInput } = useTokenInput();
   const [isOpen, setIsOpen] = useState(false);
@@ -144,7 +145,6 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     autoStart: false,
     noiseLevel: "noisy",
     handleIsOpen: (isOpen: boolean) => {
-      console.log("isOpen", isOpen);
       setIsOpen(isOpen);
     },
     onResult: async (result) => {
@@ -202,9 +202,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               const friendParams = taskInfo.data.parameters as unknown as {
                 friendName: string;
               };
-              if (friendParams.friendName) {
-                handleFriendClick(friendParams.friendName);
-              }
+              handleFriendClick(friendParams?.friendName || "");
               break;
             case TaskName.GET_FRIEND_LIST:
               navigate("/friends");
@@ -220,7 +218,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               const tokens = JSON.parse(localStorage.getItem("tokens") || "[]");
 
               const token = tokens.find(
-                (token) => token.currency === tokenParams.currency
+                (token) => token.currency === tokenParams?.currency || ""
               );
 
               if (token) {
@@ -303,7 +301,37 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     setIsOpen(!isOpen);
   }, [start, stop, isOpen]);
 
-  const handleFriendClick = (friendName: string) => {
+  const getFriendTransactionInfo = (friend, result, address) => {
+    const transactions = result.transactions.filter(
+      (tx) =>
+        (tx.fromAddress === address && tx.toAddress === friend.address) ||
+        (tx.fromAddress === friend.address && tx.toAddress === address)
+    );
+
+    const dailyTransactions = getLast7Days().map((day) => {
+      const count = transactions.filter((tx) => {
+        const txDate =
+          typeof tx.timestamp === "string"
+            ? tx.timestamp.split("T")[0]
+            : new Date(tx.timestamp).toISOString().split("T")[0];
+        return txDate === day;
+      }).length;
+
+      return { date: day, count };
+    });
+
+    return {
+      ...friend,
+      transactionCount: transactions.length,
+      lastTransaction:
+        transactions.length > 0
+          ? formatDateToKorean(new Date(transactions[0].timestamp))
+          : undefined,
+      dailyTransactions,
+    };
+  };
+
+  const handleFriendClick = async (friendName: string) => {
     const friends = JSON.parse(localStorage.getItem("friends") || "[]");
 
     let friend = friends.find(
@@ -314,7 +342,14 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       friend = friends[0];
     }
 
-    setSelectedFriend(friend);
+    const result = await getTransactionHistory(friend.address);
+    const friendTransactionInfo = getFriendTransactionInfo(
+      friend,
+      result,
+      friend.address
+    );
+
+    setSelectedFriend(friendTransactionInfo);
     setIsModalOpen(true);
   };
 
@@ -335,11 +370,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       {/* 친구 상세 정보 모달 */}
       {isModalOpen && selectedFriend && (
         <FriendDetailModal
-          friend={{
-            ...selectedFriend,
-            isFavorite: false,
-            transactionCount: 0,
-          }}
+          friend={selectedFriend}
           onClose={() => setIsModalOpen(false)}
           onResult={() => console.log("친구 상세 정보 모달 닫기")}
         />

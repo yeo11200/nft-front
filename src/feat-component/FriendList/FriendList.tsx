@@ -5,7 +5,7 @@ import { checkInitialMatches } from "../../utils/initial-search";
 import { useXrplAccount } from "../../hooks/useXrplAccount";
 import { useUI } from "../../contexts/UIContext";
 import FriendDetailModal, { Friend } from "./components/FriendDetailModal";
-import { formatDateToKorean } from "../../utils/common";
+import { formatDateToKorean, getLast7Days } from "../../utils/common";
 
 interface DailyTransaction {
   date: string;
@@ -29,17 +29,6 @@ const FriendList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getTransactionHistory } = useXrplAccount();
   const { toast } = useUI();
-
-  // 최근 7일간의 날짜 배열 생성 (YYYY-MM-DD 형식)
-  const getLast7Days = () => {
-    const days: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      days.push(date.toISOString().split("T")[0]);
-    }
-    return days;
-  };
 
   // 트랜잭션 통계 로드 함수
   const loadTransactionStats = useCallback(

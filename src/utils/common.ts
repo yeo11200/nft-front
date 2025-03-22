@@ -96,3 +96,14 @@ export const formatDateToKorean = (date: Date): string => {
   // 1년 이상
   return `${Math.floor(diffDays / 365)}년 전`;
 };
+
+// 최근 7일간의 날짜 배열 생성 (YYYY-MM-DD 형식)
+export const getLast7Days = () => {
+  const days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    days.push(date.toISOString().split("T")[0]);
+  }
+  return days;
+};
