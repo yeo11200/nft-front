@@ -404,9 +404,7 @@ const FriendDetailModal = ({
         <div className={styles.statsSection}>
           <div className={styles.statItem}>
             <span className={styles.statLabel}>총 거래 횟수</span>
-            <span className={styles.statValue}>
-              {friend.transactionCount}회
-            </span>
+            <span className={styles.statValue}>{transactions.length}회</span>
           </div>
         </div>
 
