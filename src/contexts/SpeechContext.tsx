@@ -351,8 +351,6 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     stop();
-
-    handleOpenPopup("ABC", "rNo2tAqkdM7g189BjqV9USZo1PtaM6S27t", "10", "10");
   }, [stop]);
 
   return (
