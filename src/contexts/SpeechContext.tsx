@@ -250,13 +250,13 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
 
       toast(nextText, "error");
 
-      await playTTS(nextText)
-        .then(() => {
-          console.log("TTS 재생 완료");
-        })
-        .catch((err) => {
-          console.error("TTS 재생 오류:", err);
-        });
+      // await playTTS(nextText)
+      //   .then(() => {
+      //     console.log("TTS 재생 완료");
+      //   })
+      //   .catch((err) => {
+      //     console.error("TTS 재생 오류:", err);
+      //   });
 
       console.log("TTS 재생 완료");
     } finally {
