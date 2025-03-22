@@ -234,7 +234,6 @@ export const getSocketServer = (account: string): WebSocket => {
   ws.onclose = () => {
     console.log("XRPL 소켓 서버 연결 종료");
     // 5초 후 재연결 시도
-    setTimeout(() => getSocketServer(account), 5000);
   };
 
   ws.onerror = (error) => {

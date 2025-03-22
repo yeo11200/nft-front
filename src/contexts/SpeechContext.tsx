@@ -203,7 +203,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               }
               break;
             case TaskName.GET_FRIEND_LIST:
-              navigate("/friend-list");
+              navigate("/friends");
               break;
             case TaskName.OPEN_TOKEN_INPUT:
               const tokenParams = taskInfo.data.parameters as unknown as {
