@@ -123,37 +123,6 @@ export const useXrplAccount = () => {
     }
   }, []);
 
-  // 소켓에서 잔액 업데이트 이벤트 처리
-  useEffect(() => {
-    if (!account?.address) return;
-
-    // 잔액 업데이트 이벤트 리스너
-    const handleBalanceUpdate = (event: CustomEvent) => {
-      const { address, balance } = event.detail;
-
-      // 현재 계정의 잔액이 업데이트된 경우만 처리
-      if (account && account.address === address) {
-        setAccount((prevAccount) => {
-          if (!prevAccount) return null;
-          return { ...prevAccount, balance };
-        });
-      }
-    };
-
-    // 이벤트 리스너 등록
-    window.addEventListener(
-      "xrpl:balanceUpdate",
-      handleBalanceUpdate as EventListener
-    );
-    // 컴포넌트 언마운트시 이벤트 리스너 제거
-    return () => {
-      window.removeEventListener(
-        "xrpl:balanceUpdate",
-        handleBalanceUpdate as EventListener
-      );
-    };
-  }, [account]);
-
   // 계정 생성 함수
   const createAccount = useCallback(
     async (nickname: string): Promise<AccountCreateResponse> => {
@@ -298,6 +267,7 @@ export const useXrplAccount = () => {
         });
 
         console.log(prepared, "prepared");
+
         // 트랜잭션 서명
         const signed = wallet.sign(prepared);
 
@@ -547,266 +517,266 @@ export const useXrplAccount = () => {
     []
   );
 
-  // XRP 전송 함수 (예약송금 기능 포함)
-  const sendPayment2 = useCallback(
-    async (txRequest: TransactionRequest): Promise<TransactionResponse> => {
-      setIsLoading(true);
-      setError(null);
+  // // XRP 전송 함수 (예약송금 기능 포함)
+  // const sendPayment2 = useCallback(
+  //   async (txRequest: TransactionRequest): Promise<TransactionResponse> => {
+  //     setIsLoading(true);
+  //     setError(null);
 
-      try {
-        const xrplClient = await getXrplClient();
+  //     try {
+  //       const xrplClient = await getXrplClient();
 
-        if (!xrplClient) {
-          throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
-        }
+  //       if (!xrplClient) {
+  //         throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
+  //       }
 
-        const wallet = Wallet.fromSeed(txRequest.secret);
-        console.log(wallet, "wallet", txRequest);
+  //       const wallet = Wallet.fromSeed(txRequest.secret);
+  //       console.log(wallet, "wallet", txRequest);
 
-        let result;
-        // Ripple 기준 시간
-        const RIPPLE_EPOCH = 946684800;
-        let finishAfter;
+  //       let result;
+  //       // Ripple 기준 시간
+  //       const RIPPLE_EPOCH = 946684800;
+  //       let finishAfter;
 
-        // 1. 현재 시간을 초 단위로 계산
-        const now = Math.floor(Date.now() / 1000);
+  //       // 1. 현재 시간을 초 단위로 계산
+  //       const now = Math.floor(Date.now() / 1000);
 
-        // 2. 예약 시간 계산 (초 단위)
-        finishAfter = now + (txRequest.scheduledDelay || 5) * 60; // 분 -> 초 변환
+  //       // 2. 예약 시간 계산 (초 단위)
+  //       finishAfter = now + (txRequest.scheduledDelay || 5) * 60; // 분 -> 초 변환
 
-        // 3. 로그 출력 (사람이 읽을 수 있는 형식)
-        console.log("예약 설정 시간:");
-        console.log(
-          "- 완료 가능 시간:",
-          dayjs(finishAfter * 1000).format("YYYY-MM-DD HH:mm:ss")
-        );
+  //       // 3. 로그 출력 (사람이 읽을 수 있는 형식)
+  //       console.log("예약 설정 시간:");
+  //       console.log(
+  //         "- 완료 가능 시간:",
+  //         dayjs(finishAfter * 1000).format("YYYY-MM-DD HH:mm:ss")
+  //       );
 
-        // 4. 트랜잭션 객체 생성 (Ripple 타임스탬프로 전달)
-        const escrowTx = {
-          TransactionType: "EscrowCreate",
-          Account: txRequest.fromAddress,
-          Amount: xrpToDrops(txRequest.amount),
-          Destination: txRequest.toAddress,
-          FinishAfter: finishAfter - RIPPLE_EPOCH, // Ripple 타임스탬프 사용
-        };
+  //       // 4. 트랜잭션 객체 생성 (Ripple 타임스탬프로 전달)
+  //       const escrowTx = {
+  //         TransactionType: "EscrowCreate",
+  //         Account: txRequest.fromAddress,
+  //         Amount: xrpToDrops(txRequest.amount),
+  //         Destination: txRequest.toAddress,
+  //         FinishAfter: finishAfter - RIPPLE_EPOCH, // Ripple 타임스탬프 사용
+  //       };
 
-        // 트랜잭션 준비, 서명, 제출
-        const prepared = await xrplClient.autofill(escrowTx as any);
-        console.log(prepared, "prepared escrow");
-        const signed = wallet.sign(prepared);
-        result = await xrplClient.submit(signed.tx_blob);
-        console.log("EscrowCreate 결과:", result);
+  //       // 트랜잭션 준비, 서명, 제출
+  //       const prepared = await xrplClient.autofill(escrowTx as any);
+  //       console.log(prepared, "prepared escrow");
+  //       const signed = wallet.sign(prepared);
+  //       result = await xrplClient.submit(signed.tx_blob);
+  //       console.log("EscrowCreate 결과:", result);
 
-        // 트랜잭션 결과 처리
-        const isSuccess = result.result.engine_result === "tesSUCCESS";
-        const txType = txRequest.scheduled ? "EscrowCreate" : "Payment";
+  //       // 트랜잭션 결과 처리
+  //       const isSuccess = result.result.engine_result === "tesSUCCESS";
+  //       const txType = txRequest.scheduled ? "EscrowCreate" : "Payment";
 
-        const response = {
-          success: isSuccess,
-          message: isSuccess
-            ? undefined
-            : `Transaction failed: ${
-                result.result.engine_result_message || "Unknown error"
-              }`,
-          transaction: {
-            txType,
-            hash: result.result.tx_json.hash || "",
-            amount: txRequest.amount.toString(),
-            fromAddress: txRequest.fromAddress,
-            toAddress: txRequest.toAddress,
-            timestamp: new Date().toISOString(),
-            status: isSuccess ? ("success" as const) : ("failed" as const),
-            // 예약 송금인 경우 추가 정보 포함
-            ...(txRequest.scheduled && {
-              isScheduled: true,
-              finishAfterTime: dayjs(finishAfter * 1000).toISOString(),
-              sequence: result.result.tx_json.Sequence || 0,
-            }),
-          },
-        };
+  //       const response = {
+  //         success: isSuccess,
+  //         message: isSuccess
+  //           ? undefined
+  //           : `Transaction failed: ${
+  //               result.result.engine_result_message || "Unknown error"
+  //             }`,
+  //         transaction: {
+  //           txType,
+  //           hash: result.result.tx_json.hash || "",
+  //           amount: txRequest.amount.toString(),
+  //           fromAddress: txRequest.fromAddress,
+  //           toAddress: txRequest.toAddress,
+  //           timestamp: new Date().toISOString(),
+  //           status: isSuccess ? ("success" as const) : ("failed" as const),
+  //           // 예약 송금인 경우 추가 정보 포함
+  //           ...(txRequest.scheduled && {
+  //             isScheduled: true,
+  //             finishAfterTime: dayjs(finishAfter * 1000).toISOString(),
+  //             sequence: result.result.tx_json.Sequence || 0,
+  //           }),
+  //         },
+  //       };
 
-        // 트랜잭션 성공 시 계정 잔액 업데이트
-        if (
-          response.success &&
-          account &&
-          account.address === txRequest.fromAddress
-        ) {
-          await getAccountInfo(account.address);
-        }
+  //       // 트랜잭션 성공 시 계정 잔액 업데이트
+  //       if (
+  //         response.success &&
+  //         account &&
+  //         account.address === txRequest.fromAddress
+  //       ) {
+  //         await getAccountInfo(account.address);
+  //       }
 
-        return response;
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "알 수 없는 오류";
-        setError(errorMessage);
-        console.log(errorMessage);
-        return {
-          success: false,
-          message: errorMessage,
-          transaction: null,
-        };
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [account, getAccountInfo]
-  );
+  //       return response;
+  //     } catch (error) {
+  //       const errorMessage =
+  //         error instanceof Error ? error.message : "알 수 없는 오류";
+  //       setError(errorMessage);
+  //       console.log(errorMessage);
+  //       return {
+  //         success: false,
+  //         message: errorMessage,
+  //         transaction: null,
+  //       };
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   },
+  //   [account, getAccountInfo]
+  // );
 
-  // 예약 송금 완료(인출) 함수
-  const finishEscrow = useCallback(
-    async (request: EscrowFinishRequest): Promise<EscrowResponse> => {
-      setIsLoading(true);
-      setError(null);
+  // // 예약 송금 완료(인출) 함수
+  // const finishEscrow = useCallback(
+  //   async (request: EscrowFinishRequest): Promise<EscrowResponse> => {
+  //     setIsLoading(true);
+  //     setError(null);
 
-      try {
-        const xrplClient = await getXrplClient();
+  //     try {
+  //       const xrplClient = await getXrplClient();
 
-        if (!xrplClient) {
-          throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
-        }
+  //       if (!xrplClient) {
+  //         throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
+  //       }
 
-        const wallet = Wallet.fromSeed(request.secret);
+  //       const wallet = Wallet.fromSeed(request.secret);
 
-        // 트랜잭션 준비
-        const prepared = await xrplClient.autofill({
-          TransactionType: "EscrowFinish",
-          Account: request.finisherAddress,
-          Owner: request.ownerAddress,
-          OfferSequence: request.escrowSequence,
-          LastLedgerSequence: (await xrplClient.getLedgerIndex()) + 200,
-        });
+  //       // 트랜잭션 준비
+  //       const prepared = await xrplClient.autofill({
+  //         TransactionType: "EscrowFinish",
+  //         Account: request.finisherAddress,
+  //         Owner: request.ownerAddress,
+  //         OfferSequence: request.escrowSequence,
+  //         LastLedgerSequence: (await xrplClient.getLedgerIndex()) + 200,
+  //       });
 
-        // 트랜잭션 서명
-        const signed = wallet.sign(prepared);
+  //       // 트랜잭션 서명
+  //       const signed = wallet.sign(prepared);
 
-        // 트랜잭션 제출
-        const result = await xrplClient.submitAndWait(signed.tx_blob);
+  //       // 트랜잭션 제출
+  //       const result = await xrplClient.submitAndWait(signed.tx_blob);
 
-        console.log("에스크로 완료 결과:", result);
+  //       console.log("에스크로 완료 결과:", result);
 
-        // 트랜잭션 결과 확인
-        const txResult = result.result;
-        const meta = txResult.meta as TransactionMetadata;
-        const transactionResult =
-          typeof meta === "string" ? meta : meta?.TransactionResult;
-        const isSuccess = transactionResult === "tesSUCCESS";
+  //       // 트랜잭션 결과 확인
+  //       const txResult = result.result;
+  //       const meta = txResult.meta as TransactionMetadata;
+  //       const transactionResult =
+  //         typeof meta === "string" ? meta : meta?.TransactionResult;
+  //       const isSuccess = transactionResult === "tesSUCCESS";
 
-        const response = {
-          success: isSuccess,
-          message: isSuccess
-            ? "에스크로가 성공적으로 완료되었습니다."
-            : `에스크로 완료 실패: ${transactionResult || "알 수 없는 오류"}`,
-          transaction: {
-            hash: txResult.hash,
-            type: "finish" as const,
-            status: isSuccess ? ("success" as const) : ("failed" as const),
-          },
-        };
+  //       const response = {
+  //         success: isSuccess,
+  //         message: isSuccess
+  //           ? "에스크로가 성공적으로 완료되었습니다."
+  //           : `에스크로 완료 실패: ${transactionResult || "알 수 없는 오류"}`,
+  //         transaction: {
+  //           hash: txResult.hash,
+  //           type: "finish" as const,
+  //           status: isSuccess ? ("success" as const) : ("failed" as const),
+  //         },
+  //       };
 
-        // 성공 시 계정 잔액 업데이트 (수신자)
-        if (
-          isSuccess &&
-          account &&
-          account.address === request.finisherAddress
-        ) {
-          await getAccountInfo(account.address);
-        }
+  //       // 성공 시 계정 잔액 업데이트 (수신자)
+  //       if (
+  //         isSuccess &&
+  //         account &&
+  //         account.address === request.finisherAddress
+  //       ) {
+  //         await getAccountInfo(account.address);
+  //       }
 
-        return response;
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "알 수 없는 오류";
-        setError(errorMessage);
-        console.error("에스크로 완료 오류:", error);
-        return {
-          success: false,
-          message: `에스크로 완료 실패: ${errorMessage}`,
-          transaction: null,
-        };
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [account, getAccountInfo]
-  );
+  //       return response;
+  //     } catch (error) {
+  //       const errorMessage =
+  //         error instanceof Error ? error.message : "알 수 없는 오류";
+  //       setError(errorMessage);
+  //       console.error("에스크로 완료 오류:", error);
+  //       return {
+  //         success: false,
+  //         message: `에스크로 완료 실패: ${errorMessage}`,
+  //         transaction: null,
+  //       };
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   },
+  //   [account, getAccountInfo]
+  // );
 
-  // 예약 송금 취소 함수
-  const cancelEscrow = useCallback(
-    async (request: EscrowCancelRequest): Promise<EscrowResponse> => {
-      setIsLoading(true);
-      setError(null);
+  // // 예약 송금 취소 함수
+  // const cancelEscrow = useCallback(
+  //   async (request: EscrowCancelRequest): Promise<EscrowResponse> => {
+  //     setIsLoading(true);
+  //     setError(null);
 
-      try {
-        const xrplClient = await getXrplClient();
+  //     try {
+  //       const xrplClient = await getXrplClient();
 
-        if (!xrplClient) {
-          throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
-        }
+  //       if (!xrplClient) {
+  //         throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
+  //       }
 
-        const wallet = Wallet.fromSeed(request.secret);
+  //       const wallet = Wallet.fromSeed(request.secret);
 
-        // 트랜잭션 준비
-        const prepared = await xrplClient.autofill({
-          TransactionType: "EscrowCancel",
-          Account: request.cancellerAddress,
-          Owner: request.ownerAddress,
-          OfferSequence: request.escrowSequence,
-          LastLedgerSequence: (await xrplClient.getLedgerIndex()) + 200,
-        });
+  //       // 트랜잭션 준비
+  //       const prepared = await xrplClient.autofill({
+  //         TransactionType: "EscrowCancel",
+  //         Account: request.cancellerAddress,
+  //         Owner: request.ownerAddress,
+  //         OfferSequence: request.escrowSequence,
+  //         LastLedgerSequence: (await xrplClient.getLedgerIndex()) + 200,
+  //       });
 
-        // 트랜잭션 서명
-        const signed = wallet.sign(prepared);
+  //       // 트랜잭션 서명
+  //       const signed = wallet.sign(prepared);
 
-        // 트랜잭션 제출
-        const result = await xrplClient.submitAndWait(signed.tx_blob);
+  //       // 트랜잭션 제출
+  //       const result = await xrplClient.submitAndWait(signed.tx_blob);
 
-        console.log("에스크로 취소 결과:", result);
+  //       console.log("에스크로 취소 결과:", result);
 
-        // 트랜잭션 결과 확인
-        const txResult = result.result;
-        const meta = txResult.meta as TransactionMetadata;
-        const transactionResult =
-          typeof meta === "string" ? meta : meta?.TransactionResult;
-        const isSuccess = transactionResult === "tesSUCCESS";
+  //       // 트랜잭션 결과 확인
+  //       const txResult = result.result;
+  //       const meta = txResult.meta as TransactionMetadata;
+  //       const transactionResult =
+  //         typeof meta === "string" ? meta : meta?.TransactionResult;
+  //       const isSuccess = transactionResult === "tesSUCCESS";
 
-        const response = {
-          success: isSuccess,
-          message: isSuccess
-            ? "에스크로가 성공적으로 취소되었습니다."
-            : `에스크로 취소 실패: ${transactionResult || "알 수 없는 오류"}`,
-          transaction: {
-            hash: txResult.hash,
-            type: "cancel" as const,
-            status: isSuccess ? ("success" as const) : ("failed" as const),
-          },
-        };
+  //       const response = {
+  //         success: isSuccess,
+  //         message: isSuccess
+  //           ? "에스크로가 성공적으로 취소되었습니다."
+  //           : `에스크로 취소 실패: ${transactionResult || "알 수 없는 오류"}`,
+  //         transaction: {
+  //           hash: txResult.hash,
+  //           type: "cancel" as const,
+  //           status: isSuccess ? ("success" as const) : ("failed" as const),
+  //         },
+  //       };
 
-        // 성공 시 계정 잔액 업데이트 (취소자 = 송금자)
-        if (
-          isSuccess &&
-          account &&
-          account.address === request.cancellerAddress
-        ) {
-          await getAccountInfo(account.address);
-        }
+  //       // 성공 시 계정 잔액 업데이트 (취소자 = 송금자)
+  //       if (
+  //         isSuccess &&
+  //         account &&
+  //         account.address === request.cancellerAddress
+  //       ) {
+  //         await getAccountInfo(account.address);
+  //       }
 
-        return response;
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "알 수 없는 오류";
-        setError(errorMessage);
-        console.error("에스크로 취소 오류:", error);
-        return {
-          success: false,
-          message: `에스크로 취소 실패: ${errorMessage}`,
-          transaction: null,
-        };
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [account, getAccountInfo]
-  );
+  //       return response;
+  //     } catch (error) {
+  //       const errorMessage =
+  //         error instanceof Error ? error.message : "알 수 없는 오류";
+  //       setError(errorMessage);
+  //       console.error("에스크로 취소 오류:", error);
+  //       return {
+  //         success: false,
+  //         message: `에스크로 취소 실패: ${errorMessage}`,
+  //         transaction: null,
+  //       };
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   },
+  //   [account, getAccountInfo]
+  // );
 
   return {
     account,
@@ -818,8 +788,5 @@ export const useXrplAccount = () => {
     sendPayment,
     getTransactionHistory,
     getTransactionDetails,
-    sendPayment2,
-    finishEscrow,
-    cancelEscrow,
   };
 };

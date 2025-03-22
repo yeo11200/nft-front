@@ -39,3 +39,60 @@ export const convertXrpToKrw = (
     }).format(krwValue);
   }
 };
+
+// 날짜를 한국어 형식으로 변환하는 함수
+export const formatDateToKorean = (date: Date): string => {
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  // 1시간 이내
+  if (diffTime < 1000 * 60 * 60) {
+    const diffMinutes = Math.floor(diffTime / (1000 * 60));
+    return `${diffMinutes}분 전`;
+  }
+
+  // 오늘 이내
+  if (
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  ) {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours < 12 ? "오전" : "오후";
+    const hour12 = hours % 12 || 12;
+
+    return `오늘 ${ampm} ${hour12}:${minutes.toString().padStart(2, "0")}`;
+  }
+
+  // 어제
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear()
+  ) {
+    return "어제";
+  }
+
+  // 1주일 이내
+  if (diffDays < 7) {
+    const days = ["일", "월", "화", "수", "목", "금", "토"];
+    return `${days[date.getDay()]}요일`;
+  }
+
+  // 1달 이내
+  if (diffDays < 30) {
+    return `${Math.floor(diffDays / 7)}주 전`;
+  }
+
+  // 1년 이내
+  if (diffDays < 365) {
+    return `${Math.floor(diffDays / 30)}개월 전`;
+  }
+
+  // 1년 이상
+  return `${Math.floor(diffDays / 365)}년 전`;
+};

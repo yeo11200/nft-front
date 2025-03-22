@@ -21,6 +21,10 @@ import { useNavigate } from "react-router-dom";
 import { useXrplAccount } from "../hooks/useXrplAccount";
 import { useTransactionDetail } from "./TransactionDetailContext";
 import { handleAuthentication, handleRegistration } from "../utils/auto";
+import FriendDetailModal, {
+  Friend,
+} from "../feat-component/FriendList/components/FriendDetailModal";
+
 type SpeechContextType = {
   transcript: string;
   isActive: boolean;
@@ -35,6 +39,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const { sendPayment } = useXrplAccount();
   const { openTransactionDetail } = useTransactionDetail();
   const [isOpen, setIsOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
 
   const handleSendPayment = async (
     address: string,
@@ -175,6 +181,17 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
                 queueTTS("트랜잭션 해시를 찾을 수 없습니다.");
               }
               break;
+            case TaskName.GET_FRIEND_DETAIL:
+              const friendParams = taskInfo.data.parameters as unknown as {
+                friendAddress: string;
+              };
+              if (friendParams.friendAddress) {
+                handleFriendClick(friendParams.friendAddress);
+              }
+              break;
+            case TaskName.GET_FRIEND_LIST:
+              navigate("/friend-list");
+              break;
           }
         } else {
           queueTTS(taskInfo.statusInfo.message);
@@ -238,7 +255,18 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
 
     start(false);
     setIsOpen(true);
-  }, [start]);
+  }, [start, stop]);
+
+  const handleFriendClick = (friendAddress: string) => {
+    const friends = JSON.parse(localStorage.getItem("friends") || "[]");
+
+    const friend = friends.find(
+      (friend: Friend) => friend.address === friendAddress
+    ) as Friend;
+
+    setSelectedFriend(friend);
+    setIsModalOpen(true);
+  };
 
   useEffect(() => {
     stop();
@@ -253,6 +281,19 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
         transcript={transcript}
         onClick={handleClick}
       />
+
+      {/* 친구 상세 정보 모달 */}
+      {isModalOpen && selectedFriend && (
+        <FriendDetailModal
+          friend={{
+            ...selectedFriend,
+            isFavorite: false,
+            transactionCount: 0,
+          }}
+          onClose={() => setIsModalOpen(false)}
+          onResult={() => console.log("친구 상세 정보 모달 닫기")}
+        />
+      )}
     </SpeechContext.Provider>
   );
 };

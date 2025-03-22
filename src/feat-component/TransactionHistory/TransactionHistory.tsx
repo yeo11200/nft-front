@@ -27,7 +27,7 @@ interface TransactionStatusResponse {
 const TransactionHistory: React.FC = () => {
   const { toast } = useUI();
   const { showSpinner, hideSpinner } = useSpinner();
-  const { getTransactionHistory, cancelEscrow } = useXrplAccount();
+  const { getTransactionHistory } = useXrplAccount();
   const { openTransactionDetail } = useTransactionDetail();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -187,72 +187,6 @@ const TransactionHistory: React.FC = () => {
     return { text: "✅ 완료", className: styles.statusSuccess };
   };
 
-  const handleCancel = async (
-    txStatus: TransactionStatusResponse,
-    originalTx: Transaction
-  ) => {
-    if (txStatus?.isScheduled && originalTx.sequence) {
-      // 취소 가능한지 확인
-      if (!originalTx.canCancel) {
-        if (
-          originalTx.finishAfterTime &&
-          new Date(originalTx.finishAfterTime).getTime() <= Date.now()
-        ) {
-          toast("완료 시간이 이미 지났습니다. 취소할 수 없습니다.", "error");
-        } else if (
-          originalTx.cancelAfterTime &&
-          new Date(originalTx.cancelAfterTime).getTime() > Date.now()
-        ) {
-          toast("아직 취소 가능 시간이 되지 않았습니다.", "error");
-        } else {
-          toast("현재 이 에스크로는 취소할 수 없습니다.", "error");
-        }
-        return;
-      }
-
-      try {
-        // 현재 사용자 정보 가져오기
-        const userInfo = localStorage.getItem("userInfo");
-        if (!userInfo) {
-          toast("사용자 정보를 찾을 수 없습니다.", "error");
-          return;
-        }
-
-        const { secret, address } = JSON.parse(userInfo);
-
-        // 자신의 송금만 취소 가능
-        if (originalTx.fromAddress !== myWalletAddress) {
-          toast("본인이 보낸 예약 송금만 취소할 수 있습니다.", "error");
-          return;
-        }
-
-        showSpinner("예약 송금 취소 중...");
-
-        const result = await cancelEscrow({
-          ownerAddress: address,
-          escrowSequence: originalTx.sequence,
-          cancellerAddress: address,
-          secret: secret,
-        });
-
-        hideSpinner();
-
-        if (result.success) {
-          toast("예약 송금이 취소되었습니다.", "success");
-          // 거래 내역 새로고침
-          fetchTransactionHistory(address);
-        } else {
-          toast(`취소 실패: ${result.message}`, "error");
-        }
-      } catch (error) {
-        hideSpinner();
-        const errorMessage =
-          error instanceof Error ? error.message : "알 수 없는 오류";
-        toast(`취소 중 오류 발생: ${errorMessage}`, "error");
-      }
-    }
-  };
-
   if (isLoading) {
     return <></>;
   }
@@ -281,10 +215,6 @@ const TransactionHistory: React.FC = () => {
                 className={`${styles.status} ${
                   getTransactionStatus(tx).className
                 }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCancel(getTransactionStatus(tx), tx);
-                }}
               >
                 {getTransactionStatus(tx).text}
               </div>

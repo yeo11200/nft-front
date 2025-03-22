@@ -16,6 +16,7 @@ import Header from "./components/Header";
 import { TransactionDetailProvider } from "./contexts/TransactionDetailContext";
 import ScrollToTop from "./components/common/ScrollToTop";
 import { getSocketServer } from "./utils/xrpl-client";
+import FriendList from "./feat-component/FriendList/FriendList";
 
 export type AccountResponse = {
   status: string;
@@ -117,6 +118,7 @@ function App() {
                       path="/transaction-history"
                       element={<TransactionHistory />}
                     />
+                    <Route path="/friends" element={<FriendList />} />
                     <Route path="/nft" element={<NftAccount />} />
                     <Route path="/tickets" element={<TicketManager />} />
                     <Route path="/verify" element={<TicketVerifier />} />
