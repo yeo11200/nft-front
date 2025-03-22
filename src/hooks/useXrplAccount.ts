@@ -123,6 +123,37 @@ export const useXrplAccount = () => {
     }
   }, []);
 
+  // 소켓에서 잔액 업데이트 이벤트 처리
+  useEffect(() => {
+    if (!account?.address) return;
+
+    // 잔액 업데이트 이벤트 리스너
+    const handleBalanceUpdate = (event: CustomEvent) => {
+      const { address, balance } = event.detail;
+
+      // 현재 계정의 잔액이 업데이트된 경우만 처리
+      if (account && account.address === address) {
+        setAccount((prevAccount) => {
+          if (!prevAccount) return null;
+          return { ...prevAccount, balance };
+        });
+      }
+    };
+
+    // 이벤트 리스너 등록
+    window.addEventListener(
+      "xrpl:balanceUpdate",
+      handleBalanceUpdate as EventListener
+    );
+    // 컴포넌트 언마운트시 이벤트 리스너 제거
+    return () => {
+      window.removeEventListener(
+        "xrpl:balanceUpdate",
+        handleBalanceUpdate as EventListener
+      );
+    };
+  }, [account]);
+
   // 계정 생성 함수
   const createAccount = useCallback(
     async (nickname: string): Promise<AccountCreateResponse> => {
@@ -401,8 +432,13 @@ export const useXrplAccount = () => {
             // 예약 송금 관련 추가 정보 (EscrowCreate에 한함)
             let isScheduled = false;
             let finishAfterTime: string | undefined = undefined;
+            let sequence: number | undefined = undefined;
+
             if (txObj.TransactionType === "EscrowCreate") {
               isScheduled = true;
+              // 시퀀스 번호 저장
+              sequence = txObj.Sequence || 0;
+
               if (txObj.FinishAfter) {
                 const finishAfterUnix =
                   (txObj.FinishAfter + RIPPLE_EPOCH) * 1000;
@@ -420,6 +456,7 @@ export const useXrplAccount = () => {
               txType: txObj.TransactionType, // 거래 종류 표시(Payment, EscrowCreate 등)
               isScheduled, // 예약 송금 여부 (EscrowCreate인 경우 true)
               finishAfterTime, // EscrowCreate의 FinishAfter 시간 (ISO 형식)
+              sequence, // 에스크로 시퀀스 번호 추가
             } as Transaction;
           })
           .filter((tx): tx is Transaction => tx !== null);
@@ -531,51 +568,34 @@ export const useXrplAccount = () => {
         const RIPPLE_EPOCH = 946684800;
         let finishAfter;
 
-        // 예약 송금 플래그가 true이면 EscrowCreate 트랜잭션 실행
-        if (txRequest.scheduled) {
-          // 1. 현재 시간을 초 단위로 계산
-          const now = Math.floor(Date.now() / 1000);
+        // 1. 현재 시간을 초 단위로 계산
+        const now = Math.floor(Date.now() / 1000);
 
-          // 2. 예약 시간 계산 (초 단위)
-          finishAfter = now + (txRequest.scheduledDelay || 5) * 60; // 분 -> 초 변환
+        // 2. 예약 시간 계산 (초 단위)
+        finishAfter = now + (txRequest.scheduledDelay || 5) * 60; // 분 -> 초 변환
 
-          // 3. 로그 출력 (사람이 읽을 수 있는 형식)
-          console.log("예약 설정 시간:");
-          console.log(
-            "- 완료 가능 시간:",
-            dayjs(finishAfter * 1000).format("YYYY-MM-DD HH:mm:ss")
-          );
+        // 3. 로그 출력 (사람이 읽을 수 있는 형식)
+        console.log("예약 설정 시간:");
+        console.log(
+          "- 완료 가능 시간:",
+          dayjs(finishAfter * 1000).format("YYYY-MM-DD HH:mm:ss")
+        );
 
-          // 4. 트랜잭션 객체 생성 (Ripple 타임스탬프로 전달)
-          const escrowTx = {
-            TransactionType: "EscrowCreate",
-            Account: txRequest.fromAddress,
-            Amount: xrpToDrops(txRequest.amount),
-            Destination: txRequest.toAddress,
-            FinishAfter: finishAfter - RIPPLE_EPOCH, // Ripple 타임스탬프 사용
-          };
+        // 4. 트랜잭션 객체 생성 (Ripple 타임스탬프로 전달)
+        const escrowTx = {
+          TransactionType: "EscrowCreate",
+          Account: txRequest.fromAddress,
+          Amount: xrpToDrops(txRequest.amount),
+          Destination: txRequest.toAddress,
+          FinishAfter: finishAfter - RIPPLE_EPOCH, // Ripple 타임스탬프 사용
+        };
 
-          // 트랜잭션 준비, 서명, 제출
-          const prepared = await xrplClient.autofill(escrowTx as any);
-          console.log(prepared, "prepared escrow");
-          const signed = wallet.sign(prepared);
-          result = await xrplClient.submit(signed.tx_blob);
-          console.log("EscrowCreate 결과:", result);
-        } else {
-          // 일반 XRP 전송(Payment) 트랜잭션 실행
-          const paymentTx = {
-            TransactionType: "Payment",
-            Account: txRequest.fromAddress,
-            Amount: xrpToDrops(txRequest.amount),
-            Destination: txRequest.toAddress,
-          };
-
-          const prepared = await xrplClient.autofill(paymentTx as any);
-          console.log(prepared, "prepared payment");
-          const signed = wallet.sign(prepared);
-          result = await xrplClient.submit(signed.tx_blob);
-          console.log("Payment 결과:", result);
-        }
+        // 트랜잭션 준비, 서명, 제출
+        const prepared = await xrplClient.autofill(escrowTx as any);
+        console.log(prepared, "prepared escrow");
+        const signed = wallet.sign(prepared);
+        result = await xrplClient.submit(signed.tx_blob);
+        console.log("EscrowCreate 결과:", result);
 
         // 트랜잭션 결과 처리
         const isSuccess = result.result.engine_result === "tesSUCCESS";

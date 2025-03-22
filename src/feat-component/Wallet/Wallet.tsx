@@ -9,6 +9,7 @@ import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
 import { useTransactionDetail } from "../../contexts/TransactionDetailContext";
 import { handleRegistration, handleAuthentication } from "../../utils/auto";
+import { useNavigate } from "react-router-dom";
 
 export interface Friend {
   nickname: string;
@@ -20,6 +21,7 @@ const Wallet = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { openTransactionDetail } = useTransactionDetail();
+  const navigate = useNavigate();
   const [accountData, setAccountData] = useState<AccountResponseDto["account"]>(
     {
       address: "",
@@ -33,10 +35,17 @@ const Wallet = () => {
   const { xrpPriceInfo } = useCryptoPrice();
   const { toast, confirm } = useUI();
 
+  // 랜덤 XRP 개수 생성 함수 (1~7개)
+  const generateRandomXrpAmount = (): number => {
+    return Math.floor(Math.random() * 7) + 1; // 1부터 7까지 랜덤 정수
+  };
+
   const handleSendPayment = async (friend: Friend) => {
+    const amount = generateRandomXrpAmount();
+
     const result = await confirm(
       `송금 하실래요?`,
-      `${friend.nickname}에게 1 XRP를 보내는 작업을 준비했어요. 확인 버튼 클릭 시 생체 인증 후 송금이 진행됩니다.`,
+      `${friend.nickname}에게 ${amount} XRP를 보내는 작업을 준비했어요. 확인 버튼 클릭 시 생체 인증 후 송금이 진행됩니다.`,
       {
         confirmText: "송금",
         cancelText: "취소",
@@ -94,36 +103,43 @@ const Wallet = () => {
                 // 인증 성공 - 송금 진행
                 showSpinner("송금 중...");
 
-                // const escrow = await sendPayment2({
-                //   fromAddress: accountData.address,
-                //   toAddress: friend.address,
-                //   amount: 1,
-                //   secret: accountData.secret,
-                //   scheduled: true,
-                //   scheduledDelay: 5,
-                // });
+                if (amount > 5) {
+                  const res = await sendPayment2({
+                    fromAddress: accountData.address,
+                    toAddress: friend.address,
+                    amount,
+                    secret: accountData.secret,
+                    scheduled: true,
+                    scheduledDelay: 5,
+                  });
 
-                // console.log(escrow, "escrow");
-                const res = await sendPayment({
-                  fromAddress: accountData.address,
-                  toAddress: friend.address,
-                  amount: 1,
-                  secret: accountData.secret,
-                });
+                  if (res?.success) {
+                    setTimeout(() => {
+                      navigate("/transaction-history");
+                    }, 1000);
+                  }
+                } else {
+                  const res = await sendPayment({
+                    fromAddress: accountData.address,
+                    toAddress: friend.address,
+                    amount,
+                    secret: accountData.secret,
+                  });
 
-                if (res?.transaction) {
-                  openTransactionDetail(res.transaction.hash);
+                  if (res?.transaction) {
+                    openTransactionDetail(res.transaction.hash);
+                  }
+
+                  const data = await getAccountInfo(accountData.address);
+                  if (data.account) {
+                    setAccountData((props) => ({
+                      ...props,
+                      balance: data?.account?.balance || "0",
+                    }));
+                  }
+
+                  return true; // 송금 완료
                 }
-
-                const data = await getAccountInfo(accountData.address);
-                if (data.account) {
-                  setAccountData((props) => ({
-                    ...props,
-                    balance: data?.account?.balance || "0",
-                  }));
-                }
-
-                return true; // 송금 완료
               } else {
                 toast("생체 인증에 실패했습니다.", "error");
                 return false;
