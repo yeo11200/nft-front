@@ -19,6 +19,7 @@ import { getSocketServer } from "./utils/xrpl-client";
 import FriendList from "./feat-component/FriendList/FriendList";
 import { TokenInputProvider } from "./contexts/TokenInputContext";
 import { useXrplAccount } from "./hooks/useXrplAccount";
+import { CustomEvent } from "./components/CustomEvent/CustomEvent";
 
 export type AccountResponse = {
   status: string;
@@ -112,6 +113,7 @@ function App() {
 
   return (
     <UIProvider>
+      <CustomEvent />
       <SpinnerProvider>
         {hasWallet ? (
           <BrowserRouter>

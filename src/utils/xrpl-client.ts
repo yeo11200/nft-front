@@ -43,14 +43,10 @@ export const disconnectXrplClient = async (): Promise<void> => {
 
 /**
  * 체결된 LAT 수량 계산
- * @param {Object} txData - 트랜잭션 데이터
- * @returns {number} 체결된 LAT 수량
  */
 function calculateLatExecuted(txData) {
   const meta = txData.meta || {};
-  if (meta.TransactionResult !== "tesSUCCESS" || !txData.validated) {
-    return 0;
-  }
+  if (meta.TransactionResult !== "tesSUCCESS" || !txData.validated) return 0;
 
   const affectedNodes = meta.AffectedNodes || [];
   for (const node of affectedNodes) {
@@ -85,132 +81,134 @@ function calculateLatExecuted(txData) {
 
 /**
  * WebSocket 메시지 핸들러
- * @param {string} message - 수신된 메시지
  */
 function handleMessage(message, account) {
+  let data;
   try {
-    const data = JSON.parse(message);
+    // Buffer일 경우 문자열로 변환
+    if (Buffer.isBuffer(message)) {
+      data = JSON.parse(message.toString("utf8"));
+    } else if (typeof message === "string" && message.trim() !== "") {
+      data = JSON.parse(message);
+    } else {
+      console.warn("유효하지 않은 메시지:", message);
+      return;
+    }
+  } catch (error: any) {
+    console.error("JSON 파싱 오류:", error.message, "원본 메시지:", message);
+    return;
+  }
 
-    // 1. 잔액 변경 이벤트 처리 (송금받은 경우만)
-    if (data?.engine_result === "tesSUCCESS" && data?.meta?.AffectedNodes) {
-      for (const node of data.meta.AffectedNodes) {
-        if (
-          node.ModifiedNode?.LedgerEntryType === "AccountRoot" &&
-          node.ModifiedNode.FinalFields?.Account === account
-        ) {
-          const fields = node.ModifiedNode.FinalFields;
-          const prevFields = node.ModifiedNode.PreviousFields || {};
+  // 1. 잔액 변경 이벤트 처리 (송금받은 경우만)
+  if (data?.engine_result === "tesSUCCESS" && data?.meta?.AffectedNodes) {
+    for (const node of data.meta.AffectedNodes) {
+      if (
+        node.ModifiedNode?.LedgerEntryType === "AccountRoot" &&
+        node.ModifiedNode.FinalFields?.Account === account
+      ) {
+        const fields = node.ModifiedNode.FinalFields;
+        const prevFields = node.ModifiedNode.PreviousFields || {};
 
-          if (prevFields.Balance && fields.Balance) {
-            const oldBalance = parseInt(prevFields.Balance);
-            const newBalance = parseInt(fields.Balance);
-            const balanceDiff = (newBalance - oldBalance) / 1000000;
+        if (prevFields.Balance && fields.Balance) {
+          const oldBalance = parseInt(prevFields.Balance);
+          const newBalance = parseInt(fields.Balance);
+          const balanceDiff = (newBalance - oldBalance) / 1000000;
 
-            // 송금받은 경우만 처리 (balanceDiff > 0)
-            if (balanceDiff > 0) {
-              console.log(
-                `계정 ${account}의 잔액이 업데이트되었습니다: ${oldBalance} → ${newBalance} drops`
-              );
+          if (balanceDiff > 0) {
+            console.log(
+              `계정 ${account}의 잔액이 업데이트되었습니다: ${oldBalance} → ${newBalance} drops`
+            );
 
-              // 로컬 스토리지 업데이트
-              const userInfo = localStorage.getItem("userInfo");
-              if (userInfo) {
-                const parsedInfo = JSON.parse(userInfo);
-                if (parsedInfo.address === account) {
-                  parsedInfo.balance = newBalance;
-                  localStorage.setItem("userInfo", JSON.stringify(parsedInfo));
+            const userInfo = localStorage.getItem("userInfo");
+            if (userInfo) {
+              const parsedInfo = JSON.parse(userInfo);
+              if (parsedInfo.address === account) {
+                parsedInfo.balance = newBalance;
+                localStorage.setItem("userInfo", JSON.stringify(parsedInfo));
 
-                  // 잔액 업데이트 이벤트
-                  window.dispatchEvent(
-                    new CustomEvent("xrpl:balanceUpdate", {
-                      detail: { address: account, balance: newBalance },
-                    })
-                  );
+                window.dispatchEvent(
+                  new CustomEvent("xrpl:balanceUpdate", {
+                    detail: { address: account, balance: newBalance },
+                  })
+                );
 
-                  // 입금 알림 이벤트
-                  window.dispatchEvent(
-                    new CustomEvent("xrpl:notification", {
-                      detail: {
-                        type: "incoming",
-                        amount: balanceDiff.toFixed(6),
-                        message: `${balanceDiff.toFixed(
-                          6
-                        )} XRP가 입금되었습니다.`,
-                      },
-                    })
-                  );
-                }
+                window.dispatchEvent(
+                  new CustomEvent("xrpl:notification", {
+                    detail: {
+                      type: "incoming",
+                      amount: balanceDiff.toFixed(6),
+                      message: `${balanceDiff.toFixed(
+                        6
+                      )} XRP가 입금되었습니다.`,
+                    },
+                  })
+                );
               }
             }
           }
         }
       }
     }
+  }
 
-    // 2. 트랜잭션 이벤트 처리 (LAT 체결 수량 포함)
-    if (data.type !== "transaction") return;
-    if (data.engine_result !== "tesSUCCESS" || !data.validated) return;
+  // 2. 트랜잭션 이벤트 처리 (LAT 체결 포함)
+  if (data.type !== "transaction") return;
+  if (data.engine_result !== "tesSUCCESS" || !data.validated) return;
 
-    let isAffected = false;
-    let newBalance = "";
-    let latAmount = calculateLatExecuted(data);
+  let isAffected = false;
+  let newBalance = "";
+  let latAmount = calculateLatExecuted(data);
 
-    // 내 계정에 영향 확인
-    if (data.meta?.AffectedNodes) {
-      for (const node of data.meta.AffectedNodes) {
-        if (
-          node.ModifiedNode?.LedgerEntryType === "AccountRoot" &&
-          node.ModifiedNode.FinalFields?.Account === account
-        ) {
-          isAffected = true;
-          newBalance = node.ModifiedNode.FinalFields.Balance;
-          break;
-        }
+  if (data.meta?.AffectedNodes) {
+    for (const node of data.meta.AffectedNodes) {
+      if (
+        node.ModifiedNode?.LedgerEntryType === "AccountRoot" &&
+        node.ModifiedNode.FinalFields?.Account === account
+      ) {
+        isAffected = true;
+        newBalance = node.ModifiedNode.FinalFields.Balance;
+        break;
       }
     }
+  }
 
-    // 송금받은 경우만 업데이트 (Payment + Destination이 내 계정)
-    const isPayment = data.transaction?.TransactionType === "Payment";
-    const isIncoming = isPayment && data.transaction.Destination === account;
+  const isPayment = data.transaction?.TransactionType === "Payment";
+  const isIncoming = isPayment && data.transaction.Destination === account;
 
-    if (isAffected && newBalance && isIncoming) {
-      console.log(
-        `계정 ${account}의 잔액이 업데이트되었습니다: ${newBalance} drops`
-      );
+  if (isAffected && newBalance && isIncoming) {
+    console.log(
+      `계정 ${account}의 잔액이 업데이트되었습니다: ${newBalance} drops`
+    );
 
-      const userInfo = localStorage.getItem("userInfo");
-      if (userInfo) {
-        const parsedInfo = JSON.parse(userInfo);
-        if (parsedInfo.address === account) {
-          parsedInfo.balance = newBalance;
-          localStorage.setItem("userInfo", JSON.stringify(parsedInfo));
+    const userInfo = localStorage.getItem("userInfo");
+    if (userInfo) {
+      const parsedInfo = JSON.parse(userInfo);
+      if (parsedInfo.address === account) {
+        parsedInfo.balance = newBalance;
+        localStorage.setItem("userInfo", JSON.stringify(parsedInfo));
 
-          window.dispatchEvent(
-            new CustomEvent("xrpl:balanceUpdate", {
-              detail: { address: account, balance: newBalance },
-            })
-          );
+        window.dispatchEvent(
+          new CustomEvent("xrpl:balanceUpdate", {
+            detail: { address: account, balance: newBalance },
+          })
+        );
 
-          const amount = data.meta.delivered_amount || data.transaction.Amount;
-          window.dispatchEvent(
-            new CustomEvent("xrpl:notification", {
-              detail: {
-                type: "incoming",
-                amount: (parseInt(amount) / 1000000).toFixed(6),
-                sender: data.transaction.Account,
-              },
-            })
-          );
-        }
+        const amount = data.meta.delivered_amount || data.transaction.Amount;
+        window.dispatchEvent(
+          new CustomEvent("xrpl:notification", {
+            detail: {
+              type: "incoming",
+              amount: (parseInt(amount) / 1000000).toFixed(6),
+              sender: data.transaction.Account,
+            },
+          })
+        );
       }
     }
+  }
 
-    // LAT 체결 수량 출력
-    if (latAmount > 0) {
-      console.log(`체결된 LAT 수량: ${latAmount}`);
-    }
-  } catch (error) {
-    console.error("메시지 처리 오류:", error);
+  if (latAmount > 0) {
+    console.log(`체결된 LAT 수량: ${latAmount}`);
   }
 }
 
