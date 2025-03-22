@@ -286,7 +286,12 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     stop();
 
     start(false);
-    setIsOpen(true);
+    setIsOpen((prev) => {
+      if (!prev) {
+        return true;
+      }
+      return prev;
+    });
   }, [start, stop]);
 
   const handleFriendClick = (friendAddress: string) => {
