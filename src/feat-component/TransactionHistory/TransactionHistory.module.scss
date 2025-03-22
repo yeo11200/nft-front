@@ -59,6 +59,16 @@
   color: #dc3545;
 }
 
+.statusPending {
+  color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+.statusWarning {
+  color: #ff5722;
+  background-color: rgba(255, 87, 34, 0.1);
+}
+
 .transactionDetails {
   display: flex;
   flex-direction: column;

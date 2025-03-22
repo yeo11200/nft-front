@@ -2,7 +2,8 @@ import { Client } from "xrpl";
 
 // XRPL 서버 설정
 export const xrplConfig = {
-  server: "wss://s.altnet.rippletest.net:51233", // testnet
+  server:
+    process.env.REACT_APP_XRPL_SERVER || "wss://s.altnet.rippletest.net:51233", // testnet
   // server: 'wss://xrplcluster.com', // mainnet
 };
 
@@ -38,4 +39,27 @@ export const disconnectXrplClient = async (): Promise<void> => {
     await clientInstance.disconnect();
     clientInstance = null;
   }
+};
+
+export const getSocketServer = (account: string) => {
+  const ws = new WebSocket(xrplConfig.server);
+
+  ws.onopen = () => {
+    console.log("XRPL 소켓 서버 연결 성공");
+
+    // 구독 요청 메시지 구성
+    const subscriptionRequest = {
+      id: 1,
+      command: "subscribe",
+      accounts: [account], // 이 배열에 여러 계정을 추가할 수도 있습니다.
+    };
+
+    // 서버에 구독 요청 전송
+    ws.send(JSON.stringify(subscriptionRequest));
+    console.log("구독 요청을 보냈습니다:", subscriptionRequest);
+  };
+
+  ws.onclose = () => {
+    console.log("XRPL 소켓 서버 연결 종료");
+  };
 };

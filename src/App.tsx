@@ -15,6 +15,7 @@ import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
 import { TransactionDetailProvider } from "./contexts/TransactionDetailContext";
 import ScrollToTop from "./components/common/ScrollToTop";
+import { getSocketServer } from "./utils/xrpl-client";
 
 export type AccountResponse = {
   status: string;
@@ -88,6 +89,11 @@ function App() {
     const checkWalletExists = async () => {
       const userInfo = localStorage.getItem("userInfo");
       setHasWallet(!!userInfo);
+
+      if (userInfo) {
+        const userInfoObj = JSON.parse(userInfo);
+        getSocketServer(userInfoObj.address);
+      }
     };
 
     checkWalletExists();

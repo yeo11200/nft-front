@@ -28,7 +28,7 @@ const Wallet = () => {
     }
   );
   const friends = JSON.parse(localStorage.getItem("friends") || "[]");
-  const { sendPayment, getAccountInfo } = useXrplAccount();
+  const { sendPayment, getAccountInfo, sendPayment2 } = useXrplAccount();
   const { showSpinner, hideSpinner } = useSpinner();
   const { xrpPriceInfo } = useCryptoPrice();
   const { toast, confirm } = useUI();
@@ -93,6 +93,17 @@ const Wallet = () => {
               if (authResult) {
                 // 인증 성공 - 송금 진행
                 showSpinner("송금 중...");
+
+                // const escrow = await sendPayment2({
+                //   fromAddress: accountData.address,
+                //   toAddress: friend.address,
+                //   amount: 1,
+                //   secret: accountData.secret,
+                //   scheduled: true,
+                //   scheduledDelay: 5,
+                // });
+
+                // console.log(escrow, "escrow");
                 const res = await sendPayment({
                   fromAddress: accountData.address,
                   toAddress: friend.address,

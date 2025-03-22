@@ -5,6 +5,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useState,
 } from "react";
 import useSpeechRecognition from "../hooks/useSpeechRecognition";
 import { FloatingVoiceUI } from "../components/FloatingVoiceUI";
@@ -33,6 +34,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { sendPayment } = useXrplAccount();
   const { openTransactionDetail } = useTransactionDetail();
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleSendPayment = async (
     address: string,
@@ -129,6 +131,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       stop();
       const data = await generateTextOnClient(result).finally(() => {
         hideSpinner();
+        setIsOpen(false);
       });
 
       const taskInfo = parseTaskFromResponse(data.response);
@@ -234,6 +237,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     stop();
 
     start(false);
+    setIsOpen(true);
   }, [start]);
 
   useEffect(() => {
@@ -244,7 +248,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     <SpeechContext.Provider value={{ transcript, isActive }}>
       {children}
       <FloatingVoiceUI
-        isActive={true}
+        open={true}
+        isActive={isOpen}
         transcript={transcript}
         onClick={handleClick}
       />

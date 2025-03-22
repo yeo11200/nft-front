@@ -160,6 +160,31 @@ const TransactionHistory: React.FC = () => {
     }
   }, [fetchTransactionHistory]);
 
+  const getTransactionStatus = (tx: Transaction) => {
+    if (tx.status !== "success") {
+      return { text: "❌ 실패", className: styles.statusFailed };
+    }
+
+    if (tx.txType === "EscrowCreate") {
+      if (tx.isScheduled) {
+        const now = Date.now();
+        const finishAfter = new Date(tx.finishAfterTime!).getTime();
+
+        console.log(now, finishAfter);
+        console.log(dayjs(now).format("YYYY-MM-DD HH:mm:ss"));
+        console.log(dayjs(finishAfter).format("YYYY-MM-DD HH:mm:ss"));
+
+        if (now < finishAfter) {
+          return { text: "⏳ 예약 중", className: styles.statusPending };
+        } else if (now >= finishAfter) {
+          return { text: "✅ 예약 완료", className: styles.statusSuccess };
+        }
+      }
+    }
+
+    return { text: "✅ 완료", className: styles.statusSuccess };
+  };
+
   if (isLoading) {
     return <></>;
   }
@@ -186,12 +211,10 @@ const TransactionHistory: React.FC = () => {
               </div>
               <div
                 className={`${styles.status} ${
-                  tx.status === "success"
-                    ? styles.statusSuccess
-                    : styles.statusFailed
+                  getTransactionStatus(tx).className
                 }`}
               >
-                {tx.status === "success" ? "✅ 완료됨" : "❌ 실패"}
+                {getTransactionStatus(tx).text}
               </div>
             </div>
 
