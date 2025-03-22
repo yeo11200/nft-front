@@ -25,7 +25,7 @@ import FriendDetailModal, {
   Friend,
 } from "../feat-component/FriendList/components/FriendDetailModal";
 import { useTokenInput } from "./TokenInputContext";
-import { formatDateToKorean, getLast7Days } from "@/utils/common";
+import { formatDateToKorean, getLast7Days } from "../utils/common";
 
 type SpeechContextType = {
   transcript: string;
