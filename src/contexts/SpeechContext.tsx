@@ -301,8 +301,8 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     setIsOpen(!isOpen);
   }, [start, stop, isOpen]);
 
-  const getFriendTransactionInfo = (friend, result, address) => {
-    const transactions = result.transactions.filter(
+  const getFriendTransactionInfo = async (friend, result, address) => {
+    const transactions = await result.transactions.filter(
       (tx) =>
         (tx.fromAddress === address && tx.toAddress === friend.address) ||
         (tx.fromAddress === friend.address && tx.toAddress === address)
@@ -342,11 +342,15 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       friend = friends[0];
     }
 
+    const userInfo = localStorage.getItem("userInfo");
+    const accountData = userInfo ? JSON.parse(userInfo) : null;
+
     const result = await getTransactionHistory(friend.address);
-    const friendTransactionInfo = getFriendTransactionInfo(
+
+    const friendTransactionInfo = await getFriendTransactionInfo(
       friend,
       result,
-      friend.address
+      accountData.address
     );
 
     setSelectedFriend(friendTransactionInfo);
