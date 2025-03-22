@@ -215,12 +215,14 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
                 amount: string;
               };
 
-              handleOpenPopup(
-                tokenParams?.currency || "ABC",
-                "rNo2tAqkdM7g189BjqV9USZo1PtaM6S27t",
-                tokenParams.xrpAmount || "10",
-                tokenParams.amount || "10"
-              );
+              if (tokenParams) {
+                handleOpenPopup(
+                  tokenParams?.currency,
+                  tokenParams?.account,
+                  tokenParams?.xrpAmount,
+                  tokenParams?.amount
+                );
+              }
               break;
             default:
               navigate("/wallet");
@@ -245,8 +247,6 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     try {
       isPlayingRef.current = true;
       const nextText = ttsQueueRef.current.shift()!;
-
-      console.log("TTS 재생 시작:", nextText);
       stop();
 
       toast(nextText, "error");
@@ -258,8 +258,6 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       //   .catch((err) => {
       //     console.error("TTS 재생 오류:", err);
       //   });
-
-      console.log("TTS 재생 완료");
     } finally {
       isPlayingRef.current = false;
 
