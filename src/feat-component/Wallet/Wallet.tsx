@@ -298,6 +298,37 @@ const Wallet = () => {
     }
   }, [fetchAccountInfo]);
 
+  // 소켓에서 잔액 업데이트 이벤트 처리
+  useEffect(() => {
+    if (!accountData?.address) return;
+
+    // 잔액 업데이트 이벤트 리스너
+    const handleBalanceUpdate = (event: CustomEvent) => {
+      const { address, balance } = event.detail;
+
+      // 현재 계정의 잔액이 업데이트된 경우만 처리
+      if (accountData && accountData.address === address) {
+        setAccountData((prevAccount) => {
+          // null 반환을 피하고 항상 유효한 객체 반환
+          return { ...prevAccount, balance };
+        });
+      }
+    };
+
+    // 이벤트 리스너 등록
+    window.addEventListener(
+      "xrpl:balanceUpdate",
+      handleBalanceUpdate as EventListener
+    );
+    // 컴포넌트 언마운트시 이벤트 리스너 제거
+    return () => {
+      window.removeEventListener(
+        "xrpl:balanceUpdate",
+        handleBalanceUpdate as EventListener
+      );
+    };
+  }, [accountData]);
+
   if (isLoading) {
     return <></>;
   }

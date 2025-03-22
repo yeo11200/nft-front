@@ -67,6 +67,8 @@ export const getSocketServer = (account: string) => {
     try {
       const data = JSON.parse(event.data);
 
+      console.log(data, "data");
+
       // 트랜잭션 이벤트가 아니면 무시
       if (data.type !== "transaction") {
         return;
