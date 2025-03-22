@@ -1,6 +1,6 @@
 .toastContainer {
   position: fixed;
-  padding-top: calc(env(safe-area-inset-top) - 20px); /* 20px 만큼 보정 */
+  padding-top: calc(env(safe-area-inset-top) - 40px); /* 20px 만큼 보정 */
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
