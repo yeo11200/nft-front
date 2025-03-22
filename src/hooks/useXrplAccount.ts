@@ -40,6 +40,32 @@ export interface Transaction {
   cancelAfterTime?: string;
   canCancel?: boolean;
   sequence?: number;
+
+  // 수수료 정보
+  fee?: string;
+
+  // OfferCreate 관련 속성
+  takerGets?:
+    | {
+        currency?: string;
+        issuer?: string;
+        value?: string;
+      }
+    | string;
+  takerPays?:
+    | {
+        currency?: string;
+        issuer?: string;
+        value?: string;
+      }
+    | string;
+
+  // TrustSet 관련 속성
+  limitAmount?: {
+    currency: string;
+    issuer: string;
+    value: string;
+  };
 }
 
 // 트랜잭션 요청 타입
@@ -361,18 +387,9 @@ export const useXrplAccount = () => {
         // Ripple ledger의 기준 시간(2000년 1월 1일, 초)
         const RIPPLE_EPOCH = 946684800;
 
+        // 모든 트랜잭션 타입 포함 (Payment, OfferCreate 등)
         const transactions = response.result.transactions
-          // Payment와 에스크로 관련 거래 모두 필터링
-          .filter(
-            (tx) =>
-              tx.tx &&
-              [
-                "Payment",
-                "EscrowCreate",
-                "EscrowFinish",
-                "EscrowCancel",
-              ].includes(tx.tx.TransactionType)
-          )
+          .filter((tx) => tx.tx) // 유효한 tx 객체가 있는 것만 필터링
           .map((tx) => {
             if (!tx.tx) return null;
 
@@ -389,9 +406,27 @@ export const useXrplAccount = () => {
             // 기본 from, to 주소 처리
             let fromAddress = txObj.Account || "";
             let toAddress = "";
+            let amount = "0";
+
             switch (txObj.TransactionType) {
               case "Payment":
                 toAddress = txObj.Destination || "";
+                amount =
+                  typeof txObj.Amount === "string"
+                    ? txObj.Amount
+                    : txObj.Amount?.value || "0";
+                break;
+              case "OfferCreate":
+                // OfferCreate에서는 거래소 제안이므로 명확한 상대방이 없음
+                // TakerPays는 제안자가 지불하려는 금액, TakerGets는 받고 싶은 금액
+                toAddress = ""; // 거래소 거래는 상대방이 명확하지 않음
+
+                // TakerPays가 XRP인 경우와 토큰인 경우 구분
+                if (typeof txObj.TakerPays === "string") {
+                  amount = txObj.TakerPays;
+                } else if (txObj.TakerPays && txObj.TakerPays.value) {
+                  amount = txObj.TakerPays.value;
+                }
                 break;
               case "EscrowCreate":
                 toAddress = txObj.Destination || "";
@@ -400,6 +435,11 @@ export const useXrplAccount = () => {
               case "EscrowCancel":
                 // EscrowFinish와 EscrowCancel에서는 Owner가 원래 자금을 보관한 송금자일 수 있음
                 toAddress = txObj.Owner || "";
+                break;
+              case "TrustSet":
+                // TrustSet은 신뢰선 설정이므로 상대방은 LimitAmount의 발행자
+                toAddress = txObj.LimitAmount?.issuer || "";
+                amount = txObj.LimitAmount?.value || "0";
                 break;
               default:
                 break;
@@ -424,15 +464,21 @@ export const useXrplAccount = () => {
 
             return {
               hash: txObj.hash || "",
-              amount: typeof txObj.Amount === "string" ? txObj.Amount : "0",
+              amount: amount,
               fromAddress,
               toAddress,
               timestamp: new Date(unixTimestamp).toISOString(),
               status: isSuccess ? "success" : "failed",
-              txType: txObj.TransactionType, // 거래 종류 표시(Payment, EscrowCreate 등)
+              txType: txObj.TransactionType, // 거래 종류 표시(Payment, OfferCreate 등)
               isScheduled, // 예약 송금 여부 (EscrowCreate인 경우 true)
               finishAfterTime, // EscrowCreate의 FinishAfter 시간 (ISO 형식)
               sequence, // 에스크로 시퀀스 번호 추가
+              fee: txObj.Fee || "0", // 수수료 정보 추가
+              // OfferCreate 관련 정보 추가
+              takerGets: txObj.TakerGets,
+              takerPays: txObj.TakerPays,
+              // TrustSet 관련 정보 추가
+              limitAmount: txObj.LimitAmount,
             } as Transaction;
           })
           .filter((tx): tx is Transaction => tx !== null);
@@ -536,14 +582,6 @@ export const useXrplAccount = () => {
           throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
         }
 
-        console.log(
-          `[FTService] getFTsByIssuer 호출됨 (발행자: ${issuerAddress})`
-        );
-        console.log(
-          "[FTService] 연결 상태 확인: ",
-          xrplClient.isConnected() ? "연결됨" : "연결 안됨"
-        );
-
         let shouldDisconnect = false;
         if (!xrplClient.isConnected()) {
           console.log("[FTService] XRPL에 연결 시도...");
@@ -553,19 +591,10 @@ export const useXrplAccount = () => {
         }
 
         try {
-          // account_lines 명령을 사용하여 발행된 토큰 정보 가져오기
-          console.log(
-            `[FTService] account_lines 요청 중... (계정: ${issuerAddress})`
-          );
           const response = await xrplClient.request({
             command: "account_lines",
             account: issuerAddress,
           });
-          console.log(
-            `[FTService] account_lines 응답 수신, 토큰 수: ${response.result.lines.length}`
-          );
-
-          console.log("[FTService] FT 목록 조회 성공");
           return {
             success: true,
             tokens: response.result.lines,
@@ -586,12 +615,6 @@ export const useXrplAccount = () => {
         const errorMessage =
           error instanceof Error ? error.message : "알 수 없는 오류";
         setError(errorMessage);
-        console.error("[FTService] FT 목록 조회 중 오류 발생:", error);
-        console.error("[FTService] 오류 메시지:", errorMessage);
-        console.error(
-          "[FTService] 오류 세부 정보:",
-          (error as any)?.data || "세부 정보 없음"
-        );
 
         return {
           success: false,

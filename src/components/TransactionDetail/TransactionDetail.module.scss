@@ -46,7 +46,7 @@
 }
 
 .isMe {
-  color: #4A88FF;
+  color: #4a88ff;
   font-weight: 600;
 }
 
@@ -93,12 +93,12 @@
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 8px;
-  
+
   &.success {
     background-color: rgba(32, 213, 136, 0.15);
     color: #20d588;
   }
-  
+
   &.failed {
     background-color: rgba(255, 71, 87, 0.15);
     color: #ff4757;
@@ -109,7 +109,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  
+
   &.error {
     margin-top: 12px;
   }
@@ -129,7 +129,8 @@
   align-items: center;
   gap: 8px;
 
-  &.hash, &.address {
+  &.hash,
+  &.address {
     font-family: monospace;
     background-color: rgba(255, 255, 255, 0.05);
     padding: 8px 12px;
@@ -140,11 +141,11 @@
   &.amount {
     font-weight: 600;
     font-size: 1.2rem;
-    
+
     &.positive {
       color: #20d588;
     }
-    
+
     &.negative {
       color: #ff4757;
     }
@@ -241,7 +242,7 @@
   height: 30px;
   border: 3px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  border-top-color: #4A88FF;
+  border-top-color: #4a88ff;
   animation: spin 1s ease-in-out infinite;
 }
 
@@ -250,5 +251,90 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 트랜잭션 유형 스타일
+.transactionType {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.typeIcon {
+  font-size: 1.4rem;
+  margin-right: 8px;
+}
+
+.typeTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+// OfferCreate 스타일
+.offerDetails {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 8px 0;
+}
+
+.offerRow {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.offerLabel {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+}
+
+.offerValue {
+  font-weight: 600;
+  color: #fff;
+}
+
+.offerDivider {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+// TrustSet 스타일
+.trustSetDetails {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 8px 0;
+}
+
+.trustRow {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.trustLabel {
+  width: 80px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.trustValue {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
 }

@@ -24,6 +24,26 @@ interface TransactionStatusResponse {
   isScheduled?: boolean;
 }
 
+// 트랜잭션 타입별 아이콘 매핑
+const TX_TYPE_ICONS: { [key: string]: string } = {
+  Payment: "💸",
+  OfferCreate: "🔄",
+  OfferCancel: "❌",
+  TrustSet: "🤝",
+  EscrowCreate: "⏳",
+  EscrowFinish: "✅",
+  EscrowCancel: "❎",
+  NFTokenMint: "🎨",
+  NFTokenBurn: "🔥",
+  NFTokenCreateOffer: "📝",
+  NFTokenAcceptOffer: "🤝",
+  NFTokenCancelOffer: "❌",
+  SetRegularKey: "🔑",
+  SignerListSet: "📋",
+  AccountSet: "⚙️",
+  Default: "📄",
+};
+
 const TransactionHistory: React.FC = () => {
   const { toast } = useUI();
   const { showSpinner, hideSpinner } = useSpinner();
@@ -46,6 +66,48 @@ const TransactionHistory: React.FC = () => {
     },
     [friends]
   );
+
+  // 토큰 정보 포맷팅
+  const formatTokenInfo = useCallback((tokenInfo: any): string => {
+    if (!tokenInfo) return "";
+    if (typeof tokenInfo === "string") {
+      // XRP 금액인 경우 (Drops를 XRP로 변환)
+      const xrpAmount = parseFloat(tokenInfo) / 1000000;
+      return `${xrpAmount.toLocaleString("ko-KR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })} XRP`;
+    } else if (tokenInfo.currency && tokenInfo.value) {
+      // 발행된 토큰인 경우
+      return `${parseFloat(tokenInfo.value).toLocaleString("ko-KR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })} ${tokenInfo.currency}`;
+    }
+    return "";
+  }, []);
+
+  // 트랜잭션 유형별 제목 포맷팅
+  const getTransactionTitle = useCallback((tx: Transaction): string => {
+    switch (tx.txType) {
+      case "Payment":
+        return "송금";
+      case "OfferCreate":
+        return "거래 제안 생성";
+      case "OfferCancel":
+        return "거래 제안 취소";
+      case "TrustSet":
+        return "Trust Line";
+      case "EscrowCreate":
+        return "에스크로 생성";
+      case "EscrowFinish":
+        return "에스크로 완료";
+      case "EscrowCancel":
+        return "에스크로 취소";
+      default:
+        return tx.txType || "기타 거래";
+    }
+  }, []);
 
   // 거래 내역에 친구 이름 추가
   const processedTransactions = useMemo(() => {
@@ -72,7 +134,7 @@ const TransactionHistory: React.FC = () => {
 
       if (tx.toAddress === myWalletAddress) {
         toName = "나";
-      } else {
+      } else if (tx.toAddress) {
         const toFriend = findFriendByAddress(tx.toAddress);
         if (toFriend) {
           toName = toFriend.nickname;
@@ -80,6 +142,30 @@ const TransactionHistory: React.FC = () => {
         } else {
           toName = formatAddress(tx.toAddress);
         }
+      } else {
+        // OfferCreate 등 상대방이 명확하지 않은 경우
+        toName = "거래소";
+      }
+
+      // 거래 방향 결정 (Payment와 다른 트랜잭션 유형에 따라 다름)
+      let isOutgoing = tx.fromAddress === myWalletAddress;
+      let effectiveAmount = 0;
+
+      if (tx.txType === "Payment") {
+        effectiveAmount =
+          tx.fromAddress === myWalletAddress
+            ? -Math.abs(parseFloat(tx.amount))
+            : Math.abs(parseFloat(tx.amount));
+      } else if (tx.txType === "OfferCreate") {
+        // OfferCreate는 항상 내가 제안하는 것이므로 outgoing으로 처리
+        isOutgoing = true;
+        effectiveAmount = -parseFloat(tx.fee || "0") / 1000000; // 수수료만 표시
+      } else if (tx.txType === "TrustSet") {
+        // 트러스트라인 설정은 금액 이동이 없으므로 0으로 처리
+        effectiveAmount = 0;
+      } else {
+        // 기타 거래 유형에 대한 처리
+        effectiveAmount = -parseFloat(tx.fee || "0") / 1000000; // 수수료만 표시
       }
 
       return {
@@ -89,15 +175,22 @@ const TransactionHistory: React.FC = () => {
         toName,
         toEmoji,
         // 거래 방향 (보낸 것인지 받은 것인지)
-        isOutgoing: tx.fromAddress === myWalletAddress,
+        isOutgoing,
         // 실제 금액 (보낸 경우 음수, 받은 경우 양수)
-        effectiveAmount:
-          tx.fromAddress === myWalletAddress
-            ? -Math.abs(parseFloat(tx.amount))
-            : Math.abs(parseFloat(tx.amount)),
+        effectiveAmount,
+        // 아이콘 결정
+        icon: TX_TYPE_ICONS[tx.txType] || TX_TYPE_ICONS.Default,
+        // 트랜잭션 제목
+        title: getTransactionTitle(tx),
       };
     });
-  }, [myWalletAddress, transactions, formatAddress, findFriendByAddress]);
+  }, [
+    myWalletAddress,
+    transactions,
+    formatAddress,
+    findFriendByAddress,
+    getTransactionTitle,
+  ]);
 
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -105,8 +198,11 @@ const TransactionHistory: React.FC = () => {
   };
 
   // 트랜잭션 상세 보기
-  const handleShowTransactionDetail = (hash: string) => {
-    openTransactionDetail(hash);
+  const handleShowTransactionDetail = (hash: string, status: string) => {
+    console.log(hash, "hash");
+    if (status === "success") {
+      openTransactionDetail(hash);
+    }
   };
 
   // 거래 내역 가져오기
@@ -184,7 +280,72 @@ const TransactionHistory: React.FC = () => {
       }
     }
 
-    return { text: "✅ 완료", className: styles.statusSuccess };
+    // 성공 여부에 따라 상태 표시
+    if (tx.status === "success") {
+      return { text: "✅ 완료", className: styles.statusSuccess };
+    } else {
+      return { text: "❌ 실패", className: styles.statusFailed };
+    }
+  };
+
+  // OfferCreate 거래 정보 렌더링
+  const renderOfferDetails = (tx: any) => {
+    if (tx.txType !== "OfferCreate") return null;
+
+    return (
+      <div className={styles.offerDetails}>
+        <div className={styles.offerItem}>
+          <span className={styles.offerLabel}>제안:</span>
+          <span className={styles.offerValue}>
+            {formatTokenInfo(tx.takerGets)}
+          </span>
+        </div>
+        <div className={styles.offerDivider}>→</div>
+        <div className={styles.offerItem}>
+          <span className={styles.offerLabel}>요청:</span>
+          <span className={styles.offerValue}>
+            {formatTokenInfo(tx.takerPays)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // TrustSet 거래 정보 렌더링
+  const renderTrustSetDetails = (tx: any) => {
+    if (tx.txType !== "TrustSet" || !tx.limitAmount) return null;
+
+    return (
+      <div className={styles.trustSetDetails}>
+        <div className={styles.trustItem}>
+          <span className={styles.trustLabel}>통화:</span>
+          <span className={styles.trustValue}>{tx.limitAmount.currency}</span>
+        </div>
+        <div className={styles.trustItem}>
+          <span className={styles.trustLabel}>발행자:</span>
+          <span className={styles.trustValue}>
+            {formatAddress(tx.limitAmount.issuer)}
+          </span>
+          <button
+            className={styles.copyButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCopyAddress(tx.limitAmount.issuer);
+            }}
+            aria-label="주소 복사"
+          >
+            [복사]
+          </button>
+        </div>
+        <div className={styles.trustItem}>
+          <span className={styles.trustLabel}>신뢰 한도:</span>
+          <span className={styles.trustValue}>
+            {parseFloat(tx.limitAmount.value).toLocaleString()}{" "}
+            {tx.limitAmount.currency}
+          </span>
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -204,9 +365,13 @@ const TransactionHistory: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
-            onClick={() => handleShowTransactionDetail(tx.hash)}
+            onClick={() => handleShowTransactionDetail(tx.hash, tx.status)}
           >
             <div className={styles.cardHeader}>
+              <div className={styles.transactionType}>
+                <span className={styles.typeIcon}>{tx.icon}</span>
+                <span className={styles.typeText}>{tx.title}</span>
+              </div>
               <div className={styles.dateTime}>
                 <span className={styles.dateIcon}>📅</span>
                 {dayjs(tx.timestamp).format("YYYY-MM-DD (HH:mm)")}
@@ -221,102 +386,124 @@ const TransactionHistory: React.FC = () => {
             </div>
 
             <div className={styles.transactionDetails}>
-              <div className={styles.participants}>
-                <div className={styles.participant}>
-                  <div className={styles.participantLabel}>보낸 사람</div>
-                  <div className={styles.participantValue}>
-                    {tx.fromEmoji && (
-                      <span className={styles.participantEmoji}>
-                        {tx.fromEmoji}
-                      </span>
-                    )}
-                    <span className={tx.fromName === "나" ? styles.isMe : ""}>
-                      {tx.fromName}
-                    </span>
-                    {tx.fromName !== "나" &&
-                      !findFriendByAddress(tx.fromAddress) && (
-                        <button
-                          className={styles.copyButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyAddress(tx.fromAddress);
-                          }}
-                          aria-label="주소 복사"
-                        >
-                          [복사]
-                        </button>
+              {tx.txType === "Payment" && (
+                <div className={styles.participants}>
+                  <div className={styles.participant}>
+                    <div className={styles.participantLabel}>보낸 사람</div>
+                    <div className={styles.participantValue}>
+                      {tx.fromEmoji && (
+                        <span className={styles.participantEmoji}>
+                          {tx.fromEmoji}
+                        </span>
                       )}
+                      <span className={tx.fromName === "나" ? styles.isMe : ""}>
+                        {tx.fromName}
+                      </span>
+                      {tx.fromName !== "나" &&
+                        !findFriendByAddress(tx.fromAddress) && (
+                          <button
+                            className={styles.copyButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyAddress(tx.fromAddress);
+                            }}
+                            aria-label="주소 복사"
+                          >
+                            [복사]
+                          </button>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className={styles.transferArrow}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M5 12H19M19 12L13 6M19 12L13 18"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className={styles.participant}>
+                    <div className={styles.participantLabel}>받은 사람</div>
+                    <div className={styles.participantValue}>
+                      {tx.toEmoji && (
+                        <span className={styles.participantEmoji}>
+                          {tx.toEmoji}
+                        </span>
+                      )}
+                      <span className={tx.toName === "나" ? styles.isMe : ""}>
+                        {tx.toName}
+                      </span>
+                      {tx.toName !== "나" &&
+                        tx.toAddress &&
+                        !findFriendByAddress(tx.toAddress) && (
+                          <button
+                            className={styles.copyButton}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyAddress(tx.toAddress);
+                            }}
+                            aria-label="주소 복사"
+                          >
+                            [복사]
+                          </button>
+                        )}
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <div className={styles.transferArrow}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M5 12H19M19 12L13 6M19 12L13 18"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
+              {/* OfferCreate 세부 정보 */}
+              {renderOfferDetails(tx)}
 
-                <div className={styles.participant}>
-                  <div className={styles.participantLabel}>받은 사람</div>
-                  <div className={styles.participantValue}>
-                    {tx.toEmoji && (
-                      <span className={styles.participantEmoji}>
-                        {tx.toEmoji}
-                      </span>
-                    )}
-                    <span className={tx.toName === "나" ? styles.isMe : ""}>
-                      {tx.toName}
-                    </span>
-                    {tx.toName !== "나" &&
-                      !findFriendByAddress(tx.toAddress) && (
-                        <button
-                          className={styles.copyButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyAddress(tx.toAddress);
-                          }}
-                          aria-label="주소 복사"
-                        >
-                          [복사]
-                        </button>
-                      )}
-                  </div>
-                </div>
-              </div>
+              {/* TrustSet 세부 정보 */}
+              {renderTrustSetDetails(tx)}
 
-              <div
-                className={`${styles.amount} ${
-                  tx.effectiveAmount < 0 ? styles.negative : styles.positive
-                }`}
-              >
-                <span className={styles.amountIcon}>
-                  {tx.effectiveAmount < 0 ? "💸" : "💰"}
-                </span>
-                <span className={styles.amountValue}>
-                  {tx.effectiveAmount > 0 ? "+" : ""}
-                  {formatXrpBalance(tx.effectiveAmount.toString())} XRP
-                </span>
-
-                {xrpPriceInfo && (
-                  <span className={styles.amountInKrw}>
-                    (
-                    {convertXrpToKrw(
-                      Math.abs(
-                        parseFloat(
-                          formatXrpBalance(tx.effectiveAmount.toString())
-                        )
-                      ),
-                      xrpPriceInfo
-                    )}
-                    )
+              {/* 금액 표시 (Payment 거래만) */}
+              {tx.txType === "Payment" && (
+                <div
+                  className={`${styles.amount} ${
+                    tx.effectiveAmount < 0 ? styles.negative : styles.positive
+                  }`}
+                >
+                  <span className={styles.amountIcon}>
+                    {tx.effectiveAmount < 0 ? "💸" : "💰"}
                   </span>
-                )}
-              </div>
+                  <span className={styles.amountValue}>
+                    {tx.effectiveAmount > 0 ? "+" : ""}
+                    {formatXrpBalance(tx.effectiveAmount.toString())} XRP
+                  </span>
+
+                  {xrpPriceInfo && (
+                    <span className={styles.amountInKrw}>
+                      (
+                      {convertXrpToKrw(
+                        Math.abs(
+                          parseFloat(
+                            formatXrpBalance(tx.effectiveAmount.toString())
+                          )
+                        ),
+                        xrpPriceInfo
+                      )}
+                      )
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* 수수료 정보 (모든 거래) */}
+              {tx.status === "success" && (
+                <div className={styles.feeInfo}>
+                  <span className={styles.feeLabel}>수수료:</span>
+                  <span className={styles.feeValue}>
+                    {tx.fee ? parseFloat(tx.fee) / 1000000 : 0} XRP
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
         ))
