@@ -9,9 +9,9 @@ export enum TaskName {
   GET_TRANSACTION_HISTORY = "get-transaction-history", // 거래 내역 이동
   GET_TRANSACTION_DETAIL = "get-transaction-detail", // 거래 상세 팝업 노출
   GO_TO_MAIN = "go-to-main",
-  GET_FRIEND_LIST = "get-friend-list", // 친구 목록 조회
-  GET_FRIEND_DETAIL = "get-friend-detail", // 친구 상세 정보 조회
-  OPEN_TOKEN_INPUT = "open-token-input", // 토큰 입력 팝업 노출
+  GET_FRIEND_LIST = "go-to-friends", // 친구 목록 조회
+  GET_FRIEND_DETAIL = "go-to-friend-detail", // 친구 상세 정보 조회
+  OPEN_TOKEN_INPUT = "create-offer", // 토큰 입력 팝업 노출
 }
 
 /**

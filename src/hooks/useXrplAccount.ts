@@ -178,7 +178,6 @@ export const useXrplAccount = () => {
   useEffect(() => {
     const savedAccount = localStorage.getItem("userInfo");
     if (savedAccount) {
-      console.log(JSON.parse(savedAccount), "savedAccount");
       try {
         setAccount(JSON.parse(savedAccount));
       } catch (err) {
@@ -253,7 +252,6 @@ export const useXrplAccount = () => {
 
         const accountAddress = address || account?.address;
         const accountSecret = secret || account?.secret;
-        console.log(accountAddress, "accountAddress");
         if (!accountAddress) {
           throw new Error("계정 주소가 제공되지 않았습니다.");
         }
@@ -263,8 +261,6 @@ export const useXrplAccount = () => {
           account: accountAddress,
           ledger_index: "validated",
         });
-
-        console.log(response, "response", accountAddress);
 
         const accountInfo: Account = {
           address: accountAddress,
@@ -320,8 +316,6 @@ export const useXrplAccount = () => {
 
         const wallet = Wallet.fromSeed(txRequest.secret);
 
-        console.log(wallet, "wallet", txRequest);
-
         // 트랜잭션 준비
         const prepared = await xrplClient.autofill({
           TransactionType: "Payment",
@@ -330,8 +324,6 @@ export const useXrplAccount = () => {
           Destination: txRequest.toAddress,
           LastLedgerSequence: (await xrplClient.getLedgerIndex()) + 200,
         });
-
-        console.log(prepared, "prepared");
 
         // 트랜잭션 서명
         const signed = wallet.sign(prepared);
@@ -381,7 +373,6 @@ export const useXrplAccount = () => {
         const errorMessage =
           error instanceof Error ? error.message : "알 수 없는 오류";
         setError(errorMessage);
-        console.log(errorMessage);
         return {
           success: false,
           message: errorMessage,

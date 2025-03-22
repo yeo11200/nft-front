@@ -3,8 +3,7 @@ import { Client } from "xrpl";
 // XRPL 서버 설정
 export const xrplConfig = {
   server:
-    process.env.REACT_APP_XRPL_SERVER || "wss://s.altnet.rippletest.net:51233", // testnet
-  // server: 'wss://xrplcluster.com', // mainnet
+    process.env.REACT_APP_XRPL_SERVER || "wss://s.altnet.rippletest.net:51233", // Testnet
 };
 
 // 싱글톤 클라이언트 인스턴스
@@ -32,7 +31,6 @@ export const getXrplClient = async (): Promise<Client> => {
 
 /**
  * 클라이언트 연결을 해제하는 함수
- * 애플리케이션 종료 시 호출하여 리소스 정리
  */
 export const disconnectXrplClient = async (): Promise<void> => {
   if (clientInstance && clientInstance.isConnected()) {
@@ -43,8 +41,10 @@ export const disconnectXrplClient = async (): Promise<void> => {
 
 /**
  * 체결된 LAT 수량 계산
+ * @param txData - 트랜잭션 데이터
+ * @returns 체결된 LAT 수량 (0이면 체결 없음)
  */
-function calculateLatExecuted(txData) {
+function calculateLatExecuted(txData: any): number {
   const meta = txData.meta || {};
   if (meta.TransactionResult !== "tesSUCCESS" || !txData.validated) return 0;
 
@@ -81,21 +81,16 @@ function calculateLatExecuted(txData) {
 
 /**
  * WebSocket 메시지 핸들러
+ * @param message - WebSocket에서 수신된 메시지
+ * @param account - 감시할 XRPL 계정 주소
  */
-function handleMessage(message, account) {
-  let data;
+function handleMessage(message: any, account: string): void {
+  let data: any;
+
+  console.log("message", message);
   try {
-    // Buffer일 경우 문자열로 변환
-    if (Buffer.isBuffer(message)) {
-      data = JSON.parse(message.toString("utf8"));
-    } else if (typeof message === "string" && message.trim() !== "") {
-      data = JSON.parse(message);
-    } else {
-      console.warn("유효하지 않은 메시지:", message);
-      return;
-    }
-  } catch (error: any) {
-    console.error("JSON 파싱 오류:", error.message, "원본 메시지:", message);
+    data = JSON.parse(message);
+  } catch (error) {
     return;
   }
 
@@ -110,9 +105,9 @@ function handleMessage(message, account) {
         const prevFields = node.ModifiedNode.PreviousFields || {};
 
         if (prevFields.Balance && fields.Balance) {
-          const oldBalance = parseInt(prevFields.Balance);
-          const newBalance = parseInt(fields.Balance);
-          const balanceDiff = (newBalance - oldBalance) / 1000000;
+          const oldBalance = parseInt(prevFields.Balance, 10);
+          const newBalance = parseInt(fields.Balance, 10);
+          const balanceDiff = (newBalance - oldBalance) / 1_000_000; // XRP 단위로 변환
 
           if (balanceDiff > 0) {
             console.log(
@@ -157,7 +152,7 @@ function handleMessage(message, account) {
 
   let isAffected = false;
   let newBalance = "";
-  let latAmount = calculateLatExecuted(data);
+  const latAmount = calculateLatExecuted(data);
 
   if (data.meta?.AffectedNodes) {
     for (const node of data.meta.AffectedNodes) {
@@ -198,7 +193,7 @@ function handleMessage(message, account) {
           new CustomEvent("xrpl:notification", {
             detail: {
               type: "incoming",
-              amount: (parseInt(amount) / 1000000).toFixed(6),
+              amount: (parseInt(amount, 10) / 1_000_000).toFixed(6),
               sender: data.transaction.Account,
             },
           })
@@ -213,32 +208,32 @@ function handleMessage(message, account) {
 }
 
 /**
- * 주어진 계정에 대한 트랜잭션을 실시간으로 구독하는 WebSocket 연결을 생성합니다.
- * 계정 변경이 감지되면 잔액 업데이트 및 UI 알림 처리
+ * 주어진 계정에 대한 트랜잭션을 실시간으로 구독하는 WebSocket 연결을 생성
+ * @param account - 감시할 XRPL 계정 주소
+ * @returns WebSocket 인스턴스
  */
-export const getSocketServer = (account: string) => {
+export const getSocketServer = (account: string): WebSocket => {
   const ws = new WebSocket(xrplConfig.server);
 
   ws.onopen = () => {
     console.log("XRPL 소켓 서버 연결 성공");
 
-    // 구독 요청 메시지 구성
     const subscriptionRequest = {
       id: 1,
       command: "subscribe",
-      accounts: [account], // 이 배열에 여러 계정을 추가할 수도 있습니다.
+      streams: ["transactions"], // 전체 트랜잭션 스트림
+      accounts: [account], // 특정 계정 감시
     };
 
-    // 서버에 구독 요청 전송
     ws.send(JSON.stringify(subscriptionRequest));
-    console.log("구독 요청을 보냈습니다:", subscriptionRequest);
+    console.log("구독 요청 전송:", subscriptionRequest);
   };
 
   ws.onmessage = (event) => handleMessage(event, account);
 
   ws.onclose = () => {
     console.log("XRPL 소켓 서버 연결 종료");
-    // 연결이 끊어지면 일정 시간 후 재연결 시도
+    // 5초 후 재연결 시도
     setTimeout(() => getSocketServer(account), 5000);
   };
 
@@ -247,4 +242,14 @@ export const getSocketServer = (account: string) => {
   };
 
   return ws;
+};
+
+/**
+ * WebSocket 연결 해제
+ * @param ws - WebSocket 인스턴스
+ */
+export const closeSocketServer = (ws: WebSocket): void => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.close();
+  }
 };
