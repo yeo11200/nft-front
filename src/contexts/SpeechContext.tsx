@@ -231,7 +231,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               }
               break;
             default:
-              queueTTS(taskInfo.statusInfo.message);
+              navigate("/wallet");
               break;
           }
         } else {
