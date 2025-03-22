@@ -1,0 +1,212 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+}
+
+.walletSection,
+.friendsSection {
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+
+  .emoji {
+    font-size: 22px;
+  }
+}
+
+.walletCard {
+  background-color: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.balanceSection {
+  margin-bottom: 20px;
+}
+
+.balanceLabel {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.balanceAmount {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.krwValue {
+  font-size: 16px;
+  color: #666;
+}
+
+.addressSection {
+  background-color: #f7f7f7;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.addressLabel {
+  font-size: 14px;
+  color: #666;
+}
+
+.addressValue {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  word-break: break-all;
+}
+
+.friendsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.friendItem {
+  background-color: white;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.friendInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.friendEmoji {
+  font-size: 20px;
+}
+
+.friendName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.friendAddress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.addressText {
+  font-size: 14px;
+  color: #666;
+}
+
+.sendButton {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #3a80d2;
+  }
+}
+
+.emptyFriends {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: 16px;
+  padding: 32px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+.emptyText {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.emptySubtext {
+  font-size: 14px;
+  color: #666;
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 20px;
+  }
+
+  .cryptoBalance {
+    font-size: 1.5rem;
+  }
+
+  .friendItem {
+    padding: 12px;
+  }
+
+  .copyButton {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (min-width: 601px) {
+  .container {
+    height: auto;
+    overflow-y: auto;
+
+    /* 스크롤바 스타일링 */
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  }
+
+  .contentWrapper {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
