@@ -210,3 +210,253 @@
     margin: 0 auto;
   }
 }
+
+/* 토큰 섹션 */
+.tokenSection {
+  margin-top: 24px;
+}
+
+.tokenGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.tokenCard {
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.tokenHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tokenName {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+}
+
+.tokenEmoji {
+  font-size: 28px;
+  background-color: #f8f9fa;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tokenInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tokenInfoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tokenLabel {
+  font-size: 14px;
+  color: #666;
+}
+
+.tokenValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copyButton {
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+}
+
+.active {
+  color: #4caf50;
+}
+
+.inactive {
+  color: #f44336;
+}
+
+.emptyTokens {
+  background-color: white;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  color: #888;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-top: 16px;
+}
+
+/* 모달 */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #888;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #333;
+  }
+}
+
+.modalHeader {
+  margin-bottom: 20px;
+
+  h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+  }
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modalSection {
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #555;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: 15px;
+    color: #333;
+  }
+}
+
+.addressFull {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  color: #555;
+  word-break: break-all;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.limitInfo,
+.rippleInfo,
+.qualityInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.limitRow,
+.rippleRow,
+.qualityRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+
+  span:first-child {
+    color: #666;
+  }
+
+  span:last-child {
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+  gap: 12px;
+}
+
+.actionButton {
+  flex: 1;
+  background-color: #5baeff;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    background-color: #4a9eff;
+    box-shadow: 0 4px 12px rgba(91, 174, 255, 0.3);
+  }
+}

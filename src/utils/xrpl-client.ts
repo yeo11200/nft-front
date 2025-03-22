@@ -69,6 +69,82 @@ export const getSocketServer = (account: string) => {
 
       console.log(data, "data");
 
+      // 잔액 변경 이벤트 처리 (특정 형식 데이터 구조 확인)
+      if (data?.engine_result === "tesSUCCESS" && data?.meta?.AffectedNodes) {
+        // AffectedNodes 배열 순회하며 계정 변경 확인
+        for (const node of data.meta.AffectedNodes) {
+          if (
+            node.ModifiedNode &&
+            node.ModifiedNode.LedgerEntryType === "AccountRoot" &&
+            node.ModifiedNode.FinalFields
+          ) {
+            const fields = node.ModifiedNode.FinalFields;
+            const prevFields = node.ModifiedNode.PreviousFields || {};
+
+            // 내 계정이 영향을 받았는지 확인
+            if (fields && fields.Account === account) {
+              // 잔액이 변경되었는지 확인
+              if (prevFields.Balance && fields.Balance) {
+                const oldBalance = prevFields.Balance;
+                const newBalance = fields.Balance;
+                const balanceDiff =
+                  (parseInt(newBalance) - parseInt(oldBalance)) / 1000000; // XRP로 변환
+
+                console.log(
+                  `계정 ${account}의 잔액이 업데이트되었습니다: ${oldBalance} → ${newBalance} drops`
+                );
+
+                // 로컬 스토리지에서 계정 정보 업데이트
+                const userInfo = localStorage.getItem("userInfo");
+                if (userInfo) {
+                  const parsedInfo = JSON.parse(userInfo);
+                  if (parsedInfo.address === account) {
+                    parsedInfo.balance = newBalance;
+                    localStorage.setItem(
+                      "userInfo",
+                      JSON.stringify(parsedInfo)
+                    );
+
+                    // 현재 열려있는 페이지에 잔액 변경 이벤트 발생
+                    const balanceUpdateEvent = new CustomEvent(
+                      "xrpl:balanceUpdate",
+                      {
+                        detail: {
+                          address: account,
+                          balance: newBalance,
+                        },
+                      }
+                    );
+                    window.dispatchEvent(balanceUpdateEvent);
+
+                    // 잔액 변경에 대한 토스트 알림 이벤트 발생
+                    const notificationEvent = new CustomEvent(
+                      "xrpl:notification",
+                      {
+                        detail: {
+                          type: balanceDiff >= 0 ? "incoming" : "outgoing",
+                          amount: Math.abs(balanceDiff).toFixed(6),
+                          message:
+                            balanceDiff >= 0
+                              ? `${Math.abs(balanceDiff).toFixed(
+                                  6
+                                )} XRP가 입금되었습니다.`
+                              : `${Math.abs(balanceDiff).toFixed(
+                                  6
+                                )} XRP가 출금되었습니다.`,
+                        },
+                      }
+                    );
+                    window.dispatchEvent(notificationEvent);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 기존 트랜잭션 이벤트 처리 (유지)
       // 트랜잭션 이벤트가 아니면 무시
       if (data.type !== "transaction") {
         return;

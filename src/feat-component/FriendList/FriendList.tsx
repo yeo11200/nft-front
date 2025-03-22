@@ -7,13 +7,20 @@ import { useUI } from "../../contexts/UIContext";
 import FriendDetailModal, { Friend } from "./components/FriendDetailModal";
 import { formatDateToKorean } from "../../utils/common";
 
+interface DailyTransaction {
+  date: string;
+  count: number;
+}
+
 interface FriendWithStats extends Friend {
   isFavorite: boolean;
   lastTransaction?: string;
   transactionCount: number;
+  dailyTransactions?: DailyTransaction[];
 }
 
 const FriendList = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [friends, setFriends] = useState<FriendWithStats[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFriend, setSelectedFriend] = useState<FriendWithStats | null>(
@@ -23,15 +30,28 @@ const FriendList = () => {
   const { getTransactionHistory } = useXrplAccount();
   const { toast } = useUI();
 
+  // 최근 7일간의 날짜 배열 생성 (YYYY-MM-DD 형식)
+  const getLast7Days = () => {
+    const days: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date.toISOString().split("T")[0]);
+    }
+    return days;
+  };
+
   // 트랜잭션 통계 로드 함수
   const loadTransactionStats = useCallback(
     async (friendsList: FriendWithStats[]) => {
+      setIsLoading(true);
       const userInfo = localStorage.getItem("userInfo");
       if (!userInfo) {
         return;
       }
 
       const { address } = JSON.parse(userInfo);
+      const last7Days = getLast7Days();
 
       try {
         const result = await getTransactionHistory(address);
@@ -45,6 +65,19 @@ const FriendList = () => {
                 (tx.fromAddress === friend.address && tx.toAddress === address)
             );
 
+            // 일별 거래 횟수 계산
+            const dailyTransactions = last7Days.map((day) => {
+              const count = transactions.filter((tx) => {
+                // tx.timestamp가 문자열이 아닌 경우 문자열로 변환
+                const txDate =
+                  typeof tx.timestamp === "string"
+                    ? tx.timestamp.split("T")[0]
+                    : new Date(tx.timestamp).toISOString().split("T")[0];
+                return txDate === day;
+              }).length;
+              return { date: day, count };
+            });
+
             return {
               ...friend,
               transactionCount: transactions.length,
@@ -52,10 +85,12 @@ const FriendList = () => {
                 transactions.length > 0
                   ? formatDateToKorean(new Date(transactions[0].timestamp))
                   : undefined,
+              dailyTransactions,
             };
           });
 
           setFriends(updatedFriends);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("트랜잭션 내역 로드 오류:", error);
@@ -63,6 +98,33 @@ const FriendList = () => {
     },
     [getTransactionHistory]
   );
+
+  // 미니 그래프 컴포넌트
+  const MiniGraph = ({ data }: { data: DailyTransaction[] }) => {
+    // 데이터가 없으면 빈 그래프 렌더링
+    if (!data || data.length === 0) {
+      return <div className={styles.miniGraph}></div>;
+    }
+
+    // 최대값 찾기 (스케일링 용도)
+    const maxCount = Math.max(...data.map((d) => d.count), 1);
+
+    return (
+      <div className={styles.miniGraph}>
+        {data.map((day, index) => (
+          <div
+            key={day.date}
+            className={styles.bar}
+            style={{
+              height: `${(day.count / maxCount) * 100}%`,
+              opacity: day.count > 0 ? 1 : 0.3,
+            }}
+            title={`${day.date}: ${day.count}회 거래`}
+          />
+        ))}
+      </div>
+    );
+  };
 
   // 즐겨찾기 토글 함수
   const toggleFavorite = (address: string) => {
@@ -220,9 +282,23 @@ const FriendList = () => {
                       -4
                     )}`}
                   </div>
-                  {friend.lastTransaction && (
-                    <div className={styles.lastTransaction}>
-                      마지막 거래: {friend.lastTransaction}
+                  {!isLoading && (
+                    <div className={styles.friendStats}>
+                      {friend.lastTransaction ? (
+                        <div className={styles.lastTransaction}>
+                          마지막 거래: {friend.lastTransaction}
+                        </div>
+                      ) : (
+                        <div className={styles.lastTransaction}>
+                          최근 거래가 없습니다
+                        </div>
+                      )}
+                      {friend.transactionCount > 0 && (
+                        <div className={styles.graphContainer}>
+                          <div className={styles.graphTitle}>최근 7일 거래</div>
+                          <MiniGraph data={friend.dailyTransactions || []} />
+                        </div>
+                      )}
                     </div>
                   )}
                 </motion.div>
@@ -273,9 +349,23 @@ const FriendList = () => {
                       -4
                     )}`}
                   </div>
-                  {friend.lastTransaction && (
-                    <div className={styles.lastTransaction}>
-                      마지막 거래: {friend.lastTransaction}
+                  {!isLoading && (
+                    <div className={styles.friendStats}>
+                      {friend.lastTransaction ? (
+                        <div className={styles.lastTransaction}>
+                          마지막 거래: {friend.lastTransaction}
+                        </div>
+                      ) : (
+                        <div className={styles.lastTransaction}>
+                          최근 거래가 없습니다
+                        </div>
+                      )}
+                      {friend.transactionCount > 0 && (
+                        <div className={styles.graphContainer}>
+                          <div className={styles.graphTitle}>최근 7일 거래</div>
+                          <MiniGraph data={friend.dailyTransactions || []} />
+                        </div>
+                      )}
                     </div>
                   )}
                 </motion.div>
