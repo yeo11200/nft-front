@@ -9,6 +9,9 @@ body {
   height: 100%;
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
+  /* iOS Safari 환경변수 사용 */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 body {
