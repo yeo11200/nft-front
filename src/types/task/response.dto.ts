@@ -11,6 +11,7 @@ export enum TaskName {
   GO_TO_MAIN = "go-to-main",
   GET_FRIEND_LIST = "get-friend-list", // 친구 목록 조회
   GET_FRIEND_DETAIL = "get-friend-detail", // 친구 상세 정보 조회
+  OPEN_TOKEN_INPUT = "open-token-input", // 토큰 입력 팝업 노출
 }
 
 /**

@@ -1,0 +1,238 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.popup {
+  width: 90%;
+  max-width: 420px;
+  background-color: #f9fafb;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  padding: 0;
+}
+
+.header {
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #4a90e2;
+  color: white;
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-align: center;
+  }
+}
+
+.content {
+  padding: 24px;
+}
+
+.inputGroup {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #374151;
+  }
+}
+
+.inputContainer {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:focus-within {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background-color: #f3f4f6;
+  border-right: 1px solid #e5e7eb;
+  height: 50px;
+}
+
+.currencyIcon {
+  font-size: 1.2rem;
+  margin-right: 6px;
+}
+
+.currencyLabel {
+  font-weight: 500;
+  color: #374151;
+}
+
+.amountInput {
+  flex: 1;
+  border: none;
+  padding: 14px 16px;
+  font-size: 1.1rem;
+  outline: none;
+  min-width: 0;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:focus {
+    background-color: #f9fafb;
+  }
+
+  /* 브라우저 자동완성 드롭다운 숨기기 */
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+  }
+}
+
+/* 빠른 금액 선택 버튼 컨테이너 */
+.quickAmountButtons {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+
+/* 빠른 금액 선택 버튼 */
+.quickAmountButton {
+  padding: 6px 12px;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #e5e7eb;
+  }
+
+  &:active {
+    background-color: #d1d5db;
+  }
+}
+
+/* 자동완성 드롭다운 비활성화 */
+input::-webkit-calendar-picker-indicator,
+input::-webkit-list-button,
+input::-webkit-inner-spin-button,
+input::-webkit-clear-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* 데이터 목록 요소 숨기기 */
+datalist {
+  display: none !important;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f3f4f6;
+  gap: 12px;
+}
+
+.cancelButton {
+  padding: 10px 16px;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #4b5563;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+}
+
+.confirmButton {
+  padding: 10px 20px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #3a80d2;
+  }
+
+  &:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+  }
+}
+
+// 입력 오류 스타일
+.error {
+  .inputContainer {
+    border-color: #ff6b6b;
+  }
+
+  .errorMessage {
+    font-size: 0.8rem;
+    color: #ff6b6b;
+    margin-top: 4px;
+  }
+}
+
+// 반응형 스타일
+@media (max-width: 480px) {
+  .popup {
+    width: 95%;
+  }
+
+  .header h2 {
+    font-size: 1.1rem;
+  }
+
+  .inputGroup label {
+    font-size: 0.9rem;
+  }
+
+  .amountInput {
+    font-size: 1rem;
+    padding: 12px 14px;
+  }
+
+  .iconContainer {
+    height: 46px;
+  }
+}

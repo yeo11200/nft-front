@@ -7,6 +7,7 @@ import { useXrplAccount } from "../../hooks/useXrplAccount";
 import { useSpinner } from "../../contexts/SpinnerContext";
 import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
+import { useTokenInput } from "../../contexts/TokenInputContext";
 // 토큰 인터페이스 정의
 interface TokenType {
   account: string;
@@ -24,6 +25,7 @@ const Wallet = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [tokens, setTokens] = useState<TokenType[]>([]);
   const [selectedToken, setSelectedToken] = useState<TokenType | null>(null);
+  const { openTokenInput } = useTokenInput();
 
   const [accountData, setAccountData] = useState<AccountResponseDto["account"]>(
     {
@@ -193,6 +195,11 @@ const Wallet = () => {
   const formatAddress = (address: string): string => {
     if (!address) return "";
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
+  // Context API를 통한 팝업 열기
+  const handleOpenPopup = (currency: string, account: string) => {
+    openTokenInput(currency, "🌐", account);
   };
 
   if (isLoading) {
@@ -427,7 +434,12 @@ const Wallet = () => {
                 </div>
               </div>
 
-              <div className={styles.modalFooter}>
+              <div
+                className={styles.modalFooter}
+                onClick={() =>
+                  handleOpenPopup(selectedToken.currency, selectedToken.account)
+                }
+              >
                 <button className={styles.actionButton}>➡️ 송금하기</button>
               </div>
             </motion.div>

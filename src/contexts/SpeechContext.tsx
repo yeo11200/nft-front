@@ -24,6 +24,7 @@ import { handleAuthentication, handleRegistration } from "../utils/auto";
 import FriendDetailModal, {
   Friend,
 } from "../feat-component/FriendList/components/FriendDetailModal";
+import { useTokenInput } from "./TokenInputContext";
 
 type SpeechContextType = {
   transcript: string;
@@ -38,6 +39,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { sendPayment } = useXrplAccount();
   const { openTransactionDetail } = useTransactionDetail();
+  const { openTokenInput } = useTokenInput();
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
@@ -125,6 +127,17 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       console.log("송금 진행");
     }
   };
+
+  // Context API를 통한 팝업 열기
+  const handleOpenPopup = (
+    currency: string,
+    account: string,
+    xrpAmount: string,
+    tokenAmount: string
+  ) => {
+    openTokenInput(currency, "🌐", account, xrpAmount, tokenAmount);
+  };
+
   const { transcript, isActive, stop, start } = useSpeechRecognition({
     lang: "ko-KR",
     continuous: true,
@@ -191,6 +204,25 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
               break;
             case TaskName.GET_FRIEND_LIST:
               navigate("/friend-list");
+              break;
+            case TaskName.OPEN_TOKEN_INPUT:
+              const tokenParams = taskInfo.data.parameters as unknown as {
+                currency: string;
+                account: string;
+                xrpAmount: string;
+                tokenAmount: string;
+              };
+              if (tokenParams) {
+                handleOpenPopup(
+                  tokenParams.currency,
+                  tokenParams.account,
+                  tokenParams.xrpAmount,
+                  tokenParams.tokenAmount
+                );
+              }
+              break;
+            default:
+              queueTTS(taskInfo.statusInfo.message);
               break;
           }
         } else {

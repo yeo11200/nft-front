@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Wallet, xrpToDrops, TransactionMetadata } from "xrpl";
+import { Wallet, xrpToDrops, dropsToXrp, TransactionMetadata } from "xrpl";
 import { getSocketServer, getXrplClient } from "../utils/xrpl-client";
 
 // 계정 타입 정의
@@ -131,6 +131,39 @@ export interface FTListResponse {
   success: boolean;
   message?: string;
   tokens: any[];
+}
+
+// 통화 금액 인터페이스
+export interface Currency {
+  currency: string; // 화폐 코드
+  issuer?: string; // 발행자 주소 (XRP가 아닌 경우 필수)
+  value?: string; // 금액 (XRP가 아닌 경우 문자열 형태)
+}
+
+// OfferCreate 요청 인터페이스
+export interface OfferCreateRequest {
+  account: string; // 오퍼를 생성할 계정
+  takerGets: Currency | string; // 판매할 통화/금액 (XRP인 경우 문자열)
+  takerPays: Currency | string; // 구매할 통화/금액 (XRP인 경우 문자열)
+  expiration?: number; // 만료 시간 (선택 사항)
+  offerSequence?: number; // 대체할 기존 오퍼 시퀀스 (선택 사항)
+  passive?: boolean; // 수동 오퍼 여부 (선택 사항)
+  immediateOrCancel?: boolean; // 즉시 체결 또는 취소 여부 (선택 사항)
+  fillOrKill?: boolean; // 전체 체결 또는 취소 여부 (선택 사항)
+  seed: string; // 계정의 비밀 시드
+}
+
+// OfferCreate 응답 인터페이스
+export interface OfferCreateResponse {
+  success: boolean;
+  message?: string;
+  result?: any;
+  account?: string;
+  offerSequence?: string | null;
+  takerGets?: Currency | string;
+  takerPays?: Currency | string;
+  transactionResult?: string;
+  error?: string;
 }
 
 /**
@@ -628,6 +661,351 @@ export const useXrplAccount = () => {
     []
   );
 
+  /**
+   * 현재 네트워크 수수료 정보를 가져옴
+   * @returns 권장 수수료 (drops 단위)
+   */
+  const getFeeRecommendation = useCallback(async (): Promise<string> => {
+    console.log("[useXrplAccount] 네트워크 수수료 정보 요청 중...");
+
+    try {
+      const xrplClient = await getXrplClient();
+
+      if (!xrplClient) {
+        throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
+      }
+
+      const feeResult = await xrplClient.request({
+        command: "fee",
+      });
+
+      // 다양한 수수료 레벨 중 선택 (open, medium, high)
+      const openFee = feeResult.result.drops.open_ledger_fee;
+      const mediumFee = feeResult.result.drops.median_fee;
+      const highFee = feeResult.result.drops.minimum_fee;
+
+      // 현재 네트워크 부하에 따라 적절한 수수료 선택
+      // 일반적으로 median_fee는 중간 정도의 우선순위를 가짐
+      const recommendedFee = mediumFee;
+
+      console.log(
+        `[useXrplAccount] 수수료 정보 - 낮음: ${highFee}, 중간: ${mediumFee}, 높음: ${openFee}`
+      );
+      console.log(
+        `[useXrplAccount] 권장 수수료: ${recommendedFee} drops (${dropsToXrp(
+          recommendedFee
+        )} XRP)`
+      );
+
+      // 최소 수수료보다 작지 않도록 확인
+      return recommendedFee > highFee ? recommendedFee : highFee;
+    } catch (error) {
+      console.error(
+        "[useXrplAccount] 수수료 정보 요청 실패, 기본값 사용:",
+        error
+      );
+      // 기본 수수료 반환 (10 drops)
+      return xrpToDrops("0.00001");
+    }
+  }, []);
+
+  /**
+   * 화폐 코드 형식 검증 및 변환
+   * @param currencyCode 원본 화폐 코드
+   * @returns 유효한 XRPL 화폐 코드
+   */
+  const validateCurrencyCode = useCallback((currencyCode: string): string => {
+    console.log(`[useXrplAccount] 화폐 코드 검증: "${currencyCode}"`);
+
+    // XRP 특수 처리
+    if (currencyCode.toUpperCase() === "XRP") {
+      return "XRP";
+    }
+
+    // 3글자 ISO 표준 코드인 경우
+    if (currencyCode.length === 3) {
+      console.log(`[useXrplAccount] 3글자 ISO 코드 사용: ${currencyCode}`);
+      return currencyCode;
+    }
+
+    // 이미 40자 16진수인 경우
+    if (currencyCode.length === 40 && /^[0-9A-F]+$/i.test(currencyCode)) {
+      console.log(`[useXrplAccount] 40자 16진수 코드 사용: ${currencyCode}`);
+      return currencyCode;
+    }
+
+    // 3글자가 아닌 경우 16진수로 변환 후 40자로 패딩
+    console.log(
+      `[useXrplAccount] 화폐 코드 변환 필요: ${currencyCode} (현재 ${currencyCode.length}글자)`
+    );
+
+    // 문자열을 16진수로 변환
+    let hexCode = Buffer.from(currencyCode, "utf8")
+      .toString("hex")
+      .toUpperCase();
+
+    // 40자에 맞게 패딩 (앞에 0으로 채움)
+    while (hexCode.length < 40) {
+      hexCode = "0" + hexCode;
+    }
+
+    // 40자를 초과하면 앞에서부터 40자만 사용
+    if (hexCode.length > 40) {
+      hexCode = hexCode.substring(0, 40);
+    }
+
+    console.log(`[useXrplAccount] 변환된 화폐 코드: ${hexCode}`);
+    return hexCode;
+  }, []);
+
+  /**
+   * 오퍼 생성 (OfferCreate)
+   * XRP Ledger의 내장 DEX에 거래 제안 생성
+   */
+  const createOffer = useCallback(
+    async (request: OfferCreateRequest): Promise<OfferCreateResponse> => {
+      setIsLoading(true);
+      setError(null);
+
+      let shouldDisconnect = false;
+
+      try {
+        const xrplClient = await getXrplClient();
+
+        if (!xrplClient) {
+          throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
+        }
+
+        console.log(
+          "[useXrplAccount] 연결 상태 확인: ",
+          xrplClient.isConnected() ? "연결됨" : "연결 안됨"
+        );
+        if (!xrplClient.isConnected()) {
+          console.log("[useXrplAccount] XRPL에 연결 시도...");
+          await xrplClient.connect();
+          shouldDisconnect = true;
+          console.log("[useXrplAccount] XRPL 연결 성공");
+        }
+
+        // 현재 레저 정보 가져오기
+        console.log("[useXrplAccount] 현재 레저 정보 요청 중...");
+        const ledgerInfo = await xrplClient.request({
+          command: "ledger_current",
+        });
+        const currentLedgerSequence = ledgerInfo.result.ledger_current_index;
+        console.log(
+          `[useXrplAccount] 현재 레저 시퀀스: ${currentLedgerSequence}`
+        );
+
+        // 네트워크 수수료 가져오기
+        const networkFee = await getFeeRecommendation();
+
+        // 계정 정보 및 시퀀스 번호 가져오기
+        console.log(
+          `[useXrplAccount] 계정 정보 요청 중... (주소: ${request.account})`
+        );
+        const wallet = Wallet.fromSeed(request.seed);
+
+        // 월렛 주소와 요청 계정 일치 확인
+        if (wallet.address !== request.account) {
+          throw new Error(
+            "시드에서 생성된 주소가 요청 계정 주소와 일치하지 않습니다."
+          );
+        }
+
+        const accountInfo = await xrplClient.request({
+          command: "account_info",
+          account: request.account,
+        });
+
+        const sequence = accountInfo.result.account_data.Sequence;
+        console.log(`[useXrplAccount] 계정 시퀀스 번호: ${sequence}`);
+
+        // TakerGets와 TakerPays 처리
+        let takerGets: any;
+        let takerPays: any;
+
+        // TakerGets 처리 (판매할 통화)
+        if (typeof request.takerGets === "string") {
+          // XRP인 경우
+          takerGets = xrpToDrops(request.takerGets);
+          console.log(
+            `[useXrplAccount] TakerGets: ${request.takerGets} XRP (${takerGets} drops)`
+          );
+        } else {
+          // 다른 통화인 경우
+          const currency = validateCurrencyCode(request.takerGets.currency);
+          takerGets = {
+            currency: currency,
+            issuer: request.takerGets.issuer,
+            value: request.takerGets.value,
+          };
+          console.log(
+            `[useXrplAccount] TakerGets: ${JSON.stringify(takerGets)}`
+          );
+        }
+
+        // TakerPays 처리 (구매할 통화)
+        if (typeof request.takerPays === "string") {
+          // XRP인 경우
+          takerPays = xrpToDrops(request.takerPays);
+          console.log(
+            `[useXrplAccount] TakerPays: ${request.takerPays} XRP (${takerPays} drops)`
+          );
+        } else {
+          // 다른 통화인 경우
+          const currency = validateCurrencyCode(request.takerPays.currency);
+          takerPays = {
+            currency: currency,
+            issuer: request.takerPays.issuer,
+            value: request.takerPays.value,
+          };
+          console.log(
+            `[useXrplAccount] TakerPays: ${JSON.stringify(takerPays)}`
+          );
+        }
+
+        // 플래그 계산
+        let flags = 0;
+        if (request.passive === true) {
+          flags |= 0x00010000; // tfPassive
+          console.log("[useXrplAccount] Passive 플래그 설정됨");
+        }
+        if (request.immediateOrCancel === true) {
+          flags |= 0x00020000; // tfImmediateOrCancel
+          console.log("[useXrplAccount] ImmediateOrCancel 플래그 설정됨");
+        }
+        if (request.fillOrKill === true) {
+          flags |= 0x00040000; // tfFillOrKill
+          console.log("[useXrplAccount] FillOrKill 플래그 설정됨");
+        }
+
+        // OfferCreate 트랜잭션 구성
+        console.log("[useXrplAccount] OfferCreate 트랜잭션 구성 중...");
+        const tx: any = {
+          TransactionType: "OfferCreate",
+          Account: request.account,
+          TakerGets: takerGets,
+          TakerPays: takerPays,
+          Fee: networkFee,
+          LastLedgerSequence: currentLedgerSequence + 20,
+          Sequence: sequence,
+          Flags: flags,
+        };
+
+        // 선택적 필드 추가
+        if (request.expiration) {
+          tx.Expiration = request.expiration;
+          console.log(`[useXrplAccount] 만료 시간 설정: ${request.expiration}`);
+        }
+
+        if (request.offerSequence) {
+          tx.OfferSequence = request.offerSequence;
+          console.log(
+            `[useXrplAccount] 대체할 오퍼 시퀀스: ${request.offerSequence}`
+          );
+        }
+
+        console.log(
+          "[useXrplAccount] 트랜잭션 구성 완료",
+          JSON.stringify(tx, null, 2)
+        );
+
+        // 트랜잭션 제출
+        console.log("[useXrplAccount] 트랜잭션 제출 중...");
+        const result = await xrplClient.submitAndWait(tx, { wallet });
+        console.log(
+          "[useXrplAccount] 트랜잭션 제출 결과:",
+          JSON.stringify(result, null, 2)
+        );
+
+        // 트랜잭션 결과 확인
+        const txResult = result.result.meta.TransactionResult;
+        console.log(`[useXrplAccount] 트랜잭션 결과 코드: ${txResult}`);
+
+        // 성공적인 트랜잭션 결과 코드 확인
+        const isSuccess = txResult === "tesSUCCESS";
+
+        if (isSuccess) {
+          console.log(`[useXrplAccount] 오퍼 생성 성공!`);
+
+          // 생성된 오퍼 시퀀스 번호 찾기
+          let offerSequence = null;
+          try {
+            const meta = result.result.meta;
+            if (meta.AffectedNodes) {
+              for (const node of meta.AffectedNodes) {
+                if (
+                  node.CreatedNode &&
+                  node.CreatedNode.LedgerEntryType === "Offer"
+                ) {
+                  offerSequence = node.CreatedNode.LedgerIndex.split(":")[2];
+                  console.log(
+                    `[useXrplAccount] 생성된 오퍼 시퀀스: ${offerSequence}`
+                  );
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("[useXrplAccount] 오퍼 시퀀스 추출 실패:", e);
+          }
+
+          return {
+            success: true,
+            result: result,
+            account: request.account,
+            offerSequence: offerSequence,
+            takerGets: request.takerGets,
+            takerPays: request.takerPays,
+            transactionResult: txResult,
+          };
+        } else {
+          console.error(`[useXrplAccount] 오퍼 생성 실패: ${txResult}`);
+
+          return {
+            success: false,
+            error: `트랜잭션이 실패했습니다: ${txResult}`,
+            transactionResult: txResult,
+            result: result,
+          };
+        }
+      } catch (error: any) {
+        console.error("[useXrplAccount] 오퍼 생성 중 오류 발생:", error);
+        console.error("[useXrplAccount] 오류 메시지:", error?.message);
+        console.error(
+          "[useXrplAccount] 오류 세부 정보:",
+          error?.data || "세부 정보 없음"
+        );
+
+        const errorMessage =
+          error?.message || "오퍼 생성 중 오류가 발생했습니다.";
+        setError(errorMessage);
+
+        return {
+          success: false,
+          message: errorMessage,
+          error: errorMessage,
+        };
+      } finally {
+        if (shouldDisconnect) {
+          try {
+            const xrplClient = await getXrplClient();
+            if (xrplClient && xrplClient.isConnected()) {
+              console.log("[useXrplAccount] XRPL 연결 종료 중...");
+              await xrplClient.disconnect();
+              console.log("[useXrplAccount] XRPL 연결 종료 완료");
+            }
+          } catch (err) {
+            console.error("[useXrplAccount] 연결 종료 중 오류:", err);
+          }
+        }
+        setIsLoading(false);
+      }
+    },
+    [getFeeRecommendation, validateCurrencyCode]
+  );
+
   return {
     account,
     isLoading,
@@ -639,5 +1017,6 @@ export const useXrplAccount = () => {
     getTransactionHistory,
     getTransactionDetails,
     getFTsByIssuer,
+    createOffer,
   };
 };

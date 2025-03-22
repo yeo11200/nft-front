@@ -460,3 +460,27 @@
     box-shadow: 0 4px 12px rgba(91, 174, 255, 0.3);
   }
 }
+
+// 직접 TokenInputPopup 사용 예제 스타일
+.testButtonContainer {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f0f9ff;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.testButton {
+  padding: 10px 16px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #3a80d2;
+  }
+}
