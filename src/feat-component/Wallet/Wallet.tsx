@@ -199,7 +199,17 @@ const Wallet = () => {
 
   // Context API를 통한 팝업 열기
   const handleOpenPopup = (currency: string, account: string) => {
-    openTokenInput(currency, "🌐", account);
+    openTokenInput(
+      currency,
+      "🌐",
+      account,
+      undefined,
+      undefined,
+      (xrpAmount, tokenAmount) => {
+        console.log(xrpAmount, tokenAmount);
+        fetchAccountInfo(accountData.address, accountData.secret);
+      }
+    );
   };
 
   if (isLoading) {

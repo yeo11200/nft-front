@@ -360,6 +360,7 @@ export const TokenInputProvider: React.FC<TokenInputProviderProps> = ({
       },
       seed: accountData.secret,
     }).finally(() => {
+      popupState.onConfirm?.(xrpAmount, tokenAmount);
       hideSpinner();
     });
 
