@@ -212,7 +212,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
                 currency: string;
                 account: string;
                 xrpAmount: string;
-                tokenAmount: string;
+                amount: string;
               };
 
               const tokens = JSON.parse(localStorage.getItem("tokens") || "[]");
@@ -226,7 +226,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
                   token.currency,
                   token.account,
                   tokenParams.xrpAmount || "10",
-                  tokenParams.tokenAmount || "10"
+                  tokenParams.amount || "10"
                 );
               }
               break;
