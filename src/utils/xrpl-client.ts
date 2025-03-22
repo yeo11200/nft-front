@@ -86,8 +86,6 @@ function calculateLatExecuted(txData: any): number {
  */
 function handleMessage(message: any, account: string): void {
   let data: any;
-
-  console.log("message", message);
   try {
     data = JSON.parse(message);
   } catch (error) {

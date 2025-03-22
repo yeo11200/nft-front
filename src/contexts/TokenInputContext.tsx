@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import styles from "../components/TokenInput/TokenInputPopup.module.scss";
 import { useXrplAccount } from "../hooks/useXrplAccount";
 import { useUI } from "./UIContext";
+import { useSpinner } from "./SpinnerContext";
 
 interface TokenInputPopupState {
   isOpen: boolean;
@@ -298,6 +299,7 @@ export const TokenInputProvider: React.FC<TokenInputProviderProps> = ({
     useState<TokenInputPopupState>(initialState);
   const [xrpAmount, setXrpAmount] = useState<string>("");
   const [tokenAmount, setTokenAmount] = useState<string>("");
+  const { showSpinner, hideSpinner } = useSpinner();
   const { toast } = useUI();
   const { createOffer } = useXrplAccount();
   const openTokenInput = (
@@ -338,8 +340,6 @@ export const TokenInputProvider: React.FC<TokenInputProviderProps> = ({
   };
 
   const handleConfirm = async () => {
-    console.log(popupState.issuer, xrpAmount, tokenAmount);
-
     const userInfoStr = localStorage.getItem("userInfo");
     const accountData = userInfoStr ? JSON.parse(userInfoStr) : null;
 
@@ -347,6 +347,8 @@ export const TokenInputProvider: React.FC<TokenInputProviderProps> = ({
       toast("계정 정보를 찾을 수 없습니다.", "error");
       return;
     }
+
+    showSpinner(`${popupState.currency}구매 주문중...`);
 
     await createOffer({
       account: accountData.address,
@@ -357,6 +359,8 @@ export const TokenInputProvider: React.FC<TokenInputProviderProps> = ({
         value: tokenAmount,
       },
       seed: accountData.secret,
+    }).finally(() => {
+      hideSpinner();
     });
 
     closeTokenInput();
