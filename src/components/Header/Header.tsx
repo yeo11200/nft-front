@@ -102,6 +102,20 @@ const Header: React.FC<HeaderProps> = ({ showUserInfo = true }) => {
             거래내역
           </motion.div>
         </Link>
+        <Link to="/friends">
+          <motion.div
+            className={`${styles.navLink} ${
+              isActive("/friends") ? styles.active : ""
+            } ${
+              hoveredLink && hoveredLink !== "/friends" ? styles.dimmed : ""
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onMouseEnter={() => setHoveredLink("/friends")}
+          >
+            나의친구
+          </motion.div>
+        </Link>
       </div>
     </motion.header>
   );

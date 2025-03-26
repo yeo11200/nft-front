@@ -5,6 +5,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useState,
 } from "react";
 import useSpeechRecognition from "../hooks/useSpeechRecognition";
 import { FloatingVoiceUI } from "../components/FloatingVoiceUI";
@@ -20,6 +21,12 @@ import { useNavigate } from "react-router-dom";
 import { useXrplAccount } from "../hooks/useXrplAccount";
 import { useTransactionDetail } from "./TransactionDetailContext";
 import { handleAuthentication, handleRegistration } from "../utils/auto";
+import FriendDetailModal, {
+  Friend,
+} from "../feat-component/FriendList/components/FriendDetailModal";
+import { useTokenInput } from "./TokenInputContext";
+import { formatDateToKorean, getLast7Days } from "../utils/common";
+
 type SpeechContextType = {
   transcript: string;
   isActive: boolean;
@@ -31,8 +38,12 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const { showSpinner, hideSpinner } = useSpinner();
   const { toast, confirm } = useUI();
   const navigate = useNavigate();
-  const { sendPayment } = useXrplAccount();
+  const { sendPayment, getTransactionHistory } = useXrplAccount();
   const { openTransactionDetail } = useTransactionDetail();
+  const { openTokenInput } = useTokenInput();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
 
   const handleSendPayment = async (
     address: string,
@@ -117,11 +128,25 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       console.log("송금 진행");
     }
   };
+
+  // Context API를 통한 팝업 열기
+  const handleOpenPopup = (
+    currency: string,
+    account: string,
+    xrpAmount: string,
+    tokenAmount: string
+  ) => {
+    openTokenInput(currency, "🌐", account, xrpAmount, tokenAmount);
+  };
+
   const { transcript, isActive, stop, start } = useSpeechRecognition({
     lang: "ko-KR",
     continuous: true,
     autoStart: false,
     noiseLevel: "noisy",
+    handleIsOpen: (isOpen: boolean) => {
+      setIsOpen(isOpen);
+    },
     onResult: async (result) => {
       console.log("결과 처리 시작:", result);
       showSpinner("결과 처리 중...");
@@ -129,6 +154,7 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
       stop();
       const data = await generateTextOnClient(result).finally(() => {
         hideSpinner();
+        setIsOpen(false);
       });
 
       const taskInfo = parseTaskFromResponse(data.response);
@@ -172,6 +198,35 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
                 queueTTS("트랜잭션 해시를 찾을 수 없습니다.");
               }
               break;
+            case TaskName.GET_FRIEND_DETAIL:
+              const friendParams = taskInfo.data.parameters as unknown as {
+                friendName: string;
+              };
+              handleFriendClick(friendParams?.friendName || "");
+              break;
+            case TaskName.GET_FRIEND_LIST:
+              navigate("/friends");
+              break;
+            case TaskName.OPEN_TOKEN_INPUT:
+              const tokenParams = taskInfo.data.parameters as unknown as {
+                currency: string;
+                account: string;
+                xrpAmount: string;
+                amount: string;
+              };
+
+              if (tokenParams) {
+                handleOpenPopup(
+                  tokenParams?.currency,
+                  tokenParams?.account,
+                  tokenParams?.xrpAmount,
+                  tokenParams?.amount
+                );
+              }
+              break;
+            default:
+              navigate("/wallet");
+              break;
           }
         } else {
           queueTTS(taskInfo.statusInfo.message);
@@ -192,21 +247,17 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     try {
       isPlayingRef.current = true;
       const nextText = ttsQueueRef.current.shift()!;
-
-      console.log("TTS 재생 시작:", nextText);
       stop();
 
       toast(nextText, "error");
 
-      await playTTS(nextText)
-        .then(() => {
-          console.log("TTS 재생 완료");
-        })
-        .catch((err) => {
-          console.error("TTS 재생 오류:", err);
-        });
-
-      console.log("TTS 재생 완료");
+      // await playTTS(nextText)
+      //   .then(() => {
+      //     console.log("TTS 재생 완료");
+      //   })
+      //   .catch((err) => {
+      //     console.error("TTS 재생 오류:", err);
+      //   });
     } finally {
       isPlayingRef.current = false;
 
@@ -233,8 +284,68 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
   const handleClick = useCallback(() => {
     stop();
 
-    start(false);
-  }, [start]);
+    console.log("isOpen", isOpen);
+    if (!isOpen) {
+      start(false);
+    }
+    setIsOpen(!isOpen);
+  }, [start, stop, isOpen]);
+
+  const getFriendTransactionInfo = async (friend, result, address) => {
+    const transactions = await result.transactions.filter(
+      (tx) =>
+        (tx.fromAddress === address && tx.toAddress === friend.address) ||
+        (tx.fromAddress === friend.address && tx.toAddress === address)
+    );
+
+    const dailyTransactions = getLast7Days().map((day) => {
+      const count = transactions.filter((tx) => {
+        const txDate =
+          typeof tx.timestamp === "string"
+            ? tx.timestamp.split("T")[0]
+            : new Date(tx.timestamp).toISOString().split("T")[0];
+        return txDate === day;
+      }).length;
+
+      return { date: day, count };
+    });
+
+    return {
+      ...friend,
+      transactionCount: transactions.length,
+      lastTransaction:
+        transactions.length > 0
+          ? formatDateToKorean(new Date(transactions[0].timestamp))
+          : undefined,
+      dailyTransactions,
+    };
+  };
+
+  const handleFriendClick = async (friendName: string) => {
+    const friends = JSON.parse(localStorage.getItem("friends") || "[]");
+
+    let friend = friends.find(
+      (friend: Friend) => friend.nickname === friendName
+    ) as Friend;
+
+    if (!friend) {
+      friend = friends[0];
+    }
+
+    const userInfo = localStorage.getItem("userInfo");
+    const accountData = userInfo ? JSON.parse(userInfo) : null;
+
+    const result = await getTransactionHistory(friend.address);
+
+    const friendTransactionInfo = await getFriendTransactionInfo(
+      friend,
+      result,
+      accountData.address
+    );
+
+    setSelectedFriend(friendTransactionInfo);
+    setIsModalOpen(true);
+  };
 
   useEffect(() => {
     stop();
@@ -244,10 +355,20 @@ export const SpeechProvider = ({ children }: { children: ReactNode }) => {
     <SpeechContext.Provider value={{ transcript, isActive }}>
       {children}
       <FloatingVoiceUI
-        isActive={true}
+        open={true}
+        isActive={isOpen}
         transcript={transcript}
         onClick={handleClick}
       />
+
+      {/* 친구 상세 정보 모달 */}
+      {isModalOpen && selectedFriend && (
+        <FriendDetailModal
+          friend={selectedFriend}
+          onClose={() => setIsModalOpen(false)}
+          onResult={() => console.log("친구 상세 정보 모달 닫기")}
+        />
+      )}
     </SpeechContext.Provider>
   );
 };

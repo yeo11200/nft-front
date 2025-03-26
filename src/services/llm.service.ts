@@ -22,11 +22,20 @@ const generateTextOnClient = async (
     address,
   }));
 
+  const tokensData = JSON.parse(localStorage.getItem("tokens") || "[]");
+
+  const tokens = tokensData.map(({ currency, account, balance }) => ({
+    currency,
+    account,
+    balance,
+  }));
+
   const requestBody: LlmGenerateRequestDto = {
     prompt,
     model: model ?? "gemma3:27b",
     my: userInfo,
     friends: friends,
+    fts: tokens,
   };
 
   const response = await fetch(

@@ -59,6 +59,16 @@
   color: #dc3545;
 }
 
+.statusPending {
+  color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+.statusWarning {
+  color: #ff5722;
+  background-color: rgba(255, 87, 34, 0.1);
+}
+
 .transactionDetails {
   display: flex;
   flex-direction: column;
@@ -206,4 +216,109 @@
   font-size: 16px;
   margin-right: 6px;
   display: inline-block;
+}
+
+// 트랜잭션 유형 스타일
+.transactionType {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.typeIcon {
+  margin-right: 6px;
+  font-size: 1.2rem;
+}
+
+.typeText {
+  font-size: 0.9rem;
+}
+
+// OfferCreate 트랜잭션 스타일
+.offerDetails {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.offerItem {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.offerLabel {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.offerValue {
+  font-weight: 600;
+  color: #333;
+}
+
+.offerDivider {
+  margin: 0 15px;
+  color: #999;
+  font-size: 1.2rem;
+}
+
+// TrustSet 트랜잭션 스타일
+.trustSetDetails {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #f5f9ff;
+  border-radius: 8px;
+}
+
+.trustItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.trustLabel {
+  width: 80px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.trustValue {
+  font-weight: 600;
+  color: #333;
+  margin-right: 6px;
+}
+
+// 수수료 정보 스타일
+.feeInfo {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.feeLabel {
+  margin-right: 6px;
+}
+
+.feeValue {
+  font-weight: 500;
+}
+
+// 상태 스타일 확장
+.statusFailed {
+  background-color: #ffe6e6;
+  color: #d32f2f;
 }

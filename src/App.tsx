@@ -15,6 +15,10 @@ import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
 import { TransactionDetailProvider } from "./contexts/TransactionDetailContext";
 import ScrollToTop from "./components/common/ScrollToTop";
+import { getSocketServer } from "./utils/xrpl-client";
+import FriendList from "./feat-component/FriendList/FriendList";
+import { TokenInputProvider } from "./contexts/TokenInputContext";
+import { useXrplAccount } from "./hooks/useXrplAccount";
 
 export type AccountResponse = {
   status: string;
@@ -32,6 +36,7 @@ export type ErrorResponse = {
 };
 
 function App() {
+  const { getFTsByIssuer } = useXrplAccount();
   const [hasWallet, setHasWallet] = useState<boolean | null>(
     !!localStorage.getItem("userInfo")
   );
@@ -88,11 +93,22 @@ function App() {
     const checkWalletExists = async () => {
       const userInfo = localStorage.getItem("userInfo");
       setHasWallet(!!userInfo);
+
+      if (userInfo) {
+        const userInfoObj = JSON.parse(userInfo);
+        getSocketServer(userInfoObj.address);
+        const result = await getFTsByIssuer(userInfoObj.address);
+        console.log(result, "result");
+
+        if (result.success) {
+          localStorage.setItem("tokens", JSON.stringify(result.tokens));
+        }
+      }
     };
 
     checkWalletExists();
     initializeFriends(); // 친구 목록 초기화
-  }, [initializeFriends]);
+  }, [initializeFriends, getFTsByIssuer]);
 
   return (
     <UIProvider>
@@ -102,20 +118,23 @@ function App() {
             <ScrollToTop />
             <CryptoPriceProvider>
               <TransactionDetailProvider>
-                <SpeechProvider>
-                  <Header />
-                  <Routes>
-                    <Route path="/" element={<Main />} />
-                    <Route path="/wallet" element={<Wallet />} />
-                    <Route
-                      path="/transaction-history"
-                      element={<TransactionHistory />}
-                    />
-                    <Route path="/nft" element={<NftAccount />} />
-                    <Route path="/tickets" element={<TicketManager />} />
-                    <Route path="/verify" element={<TicketVerifier />} />
-                  </Routes>
-                </SpeechProvider>
+                <TokenInputProvider>
+                  <SpeechProvider>
+                    <Header />
+                    <Routes>
+                      <Route path="/" element={<Main />} />
+                      <Route path="/wallet" element={<Wallet />} />
+                      <Route
+                        path="/transaction-history"
+                        element={<TransactionHistory />}
+                      />
+                      <Route path="/friends" element={<FriendList />} />
+                      <Route path="/nft" element={<NftAccount />} />
+                      <Route path="/tickets" element={<TicketManager />} />
+                      <Route path="/verify" element={<TicketVerifier />} />
+                    </Routes>
+                  </SpeechProvider>
+                </TokenInputProvider>
               </TransactionDetailProvider>
             </CryptoPriceProvider>
           </BrowserRouter>

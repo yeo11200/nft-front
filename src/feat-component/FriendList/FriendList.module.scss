@@ -1,0 +1,312 @@
+.container {
+  padding: 16px;
+  position: relative;
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+/* 검색바 스타일 */
+.searchBarContainer {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 16px 0;
+  background-color: #fff;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.searchBar {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 24px;
+  border: 1px solid #e1e1e1;
+  background-color: #f8f9fa;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  &:focus {
+    outline: none;
+    border-color: #5baeff;
+    box-shadow: 0 2px 8px rgba(91, 174, 255, 0.2);
+  }
+}
+
+.clearButton {
+  position: absolute;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 8px;
+
+  &:hover {
+    color: #555;
+  }
+}
+
+.searchResult {
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #666;
+  padding-left: 8px;
+}
+
+/* 섹션 스타일 */
+.section {
+  margin-bottom: 32px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  color: #333;
+}
+
+.emoji {
+  margin-right: 8px;
+  font-size: 20px;
+}
+
+/* 친구 카드 그리드 */
+.friendsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.friendCard {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .friendAddressContainer {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .friendAddress {
+    font-size: 0.8rem;
+    color: var(--secondary-text-color);
+    word-break: break-all;
+    cursor: pointer;
+    transition: color 0.2s;
+    flex: 1;
+
+    &:hover {
+      color: var(--primary-color);
+    }
+  }
+
+  .copyButton {
+    background: none;
+    border: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    margin-left: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s;
+
+    &:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  }
+}
+
+.favoriteIcon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #ffcb45;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.2);
+  }
+}
+
+.friendEmoji {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: inline-block;
+  background-color: #f8f9fa;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friendName {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.friendAddress {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+
+.lastTransaction {
+  font-size: 13px;
+  color: #999;
+  margin-top: 8px;
+  border-top: 1px dashed #eee;
+  padding-top: 8px;
+}
+
+/* 빈 친구 목록 상태 */
+.emptyFriends {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  text-align: center;
+  color: #888;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.emptySubtext {
+  font-size: 14px;
+}
+
+/* 친구 추가 버튼 (플로팅 버튼) */
+.addFriendButton {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #5baeff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(91, 174, 255, 0.4);
+  border: none;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  &:hover {
+    background-color: #4a9eff;
+    box-shadow: 0 6px 16px rgba(91, 174, 255, 0.5);
+  }
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .friendsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .friendEmoji {
+    font-size: 28px;
+    width: 50px;
+    height: 50px;
+  }
+
+  .friendName {
+    font-size: 16px;
+  }
+
+  .friendAddress {
+    font-size: 12px;
+  }
+}
+
+.friendStats {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.graphContainer {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.graphTitle {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.miniGraph {
+  display: flex;
+  align-items: flex-end;
+  height: 30px;
+  gap: 2px;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+}
+
+.bar {
+  flex: 1;
+  background-color: #5f99ea;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+  min-height: 2px;
+}
