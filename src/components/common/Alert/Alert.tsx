@@ -1,20 +1,14 @@
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./Alert.module.scss";
 
-interface AlertProps {
+export interface AlertProps {
   title: string;
   message: string;
   onClose: () => void;
   type?: "success" | "error" | "info" | "warning";
 }
 
-export const Alert: React.FC<AlertProps> = ({
-  title,
-  message,
-  onClose,
-  type = "info",
-}) => {
+const Alert = ({ title, message, onClose, type = "info" }: AlertProps) => {
   return (
     <AnimatePresence>
       <div className={styles.overlay}>
@@ -34,3 +28,5 @@ export const Alert: React.FC<AlertProps> = ({
     </AnimatePresence>
   );
 };
+
+export default Alert;

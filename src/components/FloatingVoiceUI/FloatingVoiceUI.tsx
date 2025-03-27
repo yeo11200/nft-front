@@ -1,20 +1,19 @@
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./FloatingVoiceUI.module.scss";
 
-interface FloatingVoiceUIProps {
+export interface FloatingVoiceUIProps {
   open: boolean;
   isActive: boolean;
   transcript: string;
   onClick: () => void;
 }
 
-export const FloatingVoiceUI: React.FC<FloatingVoiceUIProps> = ({
+const FloatingVoiceUI = ({
   open,
   isActive,
   transcript,
   onClick,
-}) => {
+}: FloatingVoiceUIProps) => {
   return (
     <AnimatePresence>
       {open && (
@@ -89,3 +88,5 @@ export const FloatingVoiceUI: React.FC<FloatingVoiceUIProps> = ({
     </AnimatePresence>
   );
 };
+
+export default FloatingVoiceUI;

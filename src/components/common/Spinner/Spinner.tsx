@@ -1,20 +1,19 @@
-import React from "react";
 import { motion } from "framer-motion";
 import styles from "./Spinner.module.scss";
 
-interface SpinnerProps {
+export interface SpinnerProps {
   size?: "small" | "medium" | "large";
   color?: string;
   fullScreen?: boolean;
   text?: string;
 }
 
-export const Spinner: React.FC<SpinnerProps> = ({
+const Spinner = ({
   size = "medium",
   color = "#3498db",
   fullScreen = false,
   text,
-}) => {
+}: SpinnerProps) => {
   const spinnerVariants = {
     animate: {
       rotate: 360,
@@ -48,3 +47,5 @@ export const Spinner: React.FC<SpinnerProps> = ({
 
   return <div className={styles.container}>{spinnerContent}</div>;
 };
+
+export default Spinner;

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Spinner } from "../components/common/Spinner";
+import { createContext, useContext, useState, ReactNode } from "react";
+import Spinner from "../components/common/Spinner";
 
 interface SpinnerContextType {
   showSpinner: (text?: string) => void;
