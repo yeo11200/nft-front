@@ -78,7 +78,7 @@ interface SpeechRecognitionConstructor {
  * });
  * ```
  */
-const useSpeechRecognition = ({
+export const useSpeechRecognition = ({
   lang = "ko-KR",
   interimResults = true,
   maxAlternatives = 1,
@@ -750,5 +750,3 @@ const useSpeechRecognition = ({
     readText,
   };
 };
-
-export default useSpeechRecognition;

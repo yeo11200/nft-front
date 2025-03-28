@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Transaction } from "../../../hooks/useXrplAccount";
 import { useCryptoPrice } from "../../../contexts/CryptoPriceContext";
 import dayjs from "dayjs";
+import { Transaction } from "../../../hooks";
 
 interface Friend {
   nickname: string;

@@ -1,5 +1,5 @@
 import { ReactNode, createContext, useContext, useState } from "react";
-import { useXrplAccount } from "../hooks/useXrplAccount";
+import { useXrplAccount } from "../hooks";
 import { useUI } from "./UIContext";
 import { useSpinner } from "./SpinnerContext";
 import TokenInputPopup, {

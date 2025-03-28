@@ -7,10 +7,6 @@ import React, {
   useCallback,
   useState,
 } from "react";
-import useSpeechRecognition from "../hooks/useSpeechRecognition";
-import { FloatingVoiceUI } from "../components/FloatingVoiceUI";
-import { useSpinner } from "./SpinnerContext";
-import { playTTS } from "../utils/tts-api";
 import {
   generateTextOnClient,
   parseTaskFromResponse,
@@ -18,7 +14,6 @@ import {
 import { TaskName } from "../types/task/response.dto";
 import { useUI } from "./UIContext";
 import { useNavigate } from "react-router-dom";
-import { useXrplAccount } from "../hooks/useXrplAccount";
 import { useTransactionDetail } from "./TransactionDetailContext";
 import { handleAuthentication, handleRegistration } from "../utils/auto";
 import FriendDetailModal, {
@@ -26,6 +21,9 @@ import FriendDetailModal, {
 } from "../feat-component/FriendList/components/FriendDetailModal";
 import { useTokenInput } from "./TokenInputContext";
 import { formatDateToKorean, getLast7Days } from "../utils/common";
+import FloatingVoiceUI from "../components/FloatingVoiceUI";
+import { useSpinner } from "./SpinnerContext";
+import { useSpeechRecognition, useXrplAccount } from "../hooks";
 
 type SpeechContextType = {
   transcript: string;
