@@ -1,12 +1,12 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import styles from "../components/TokenInput/TokenInputPopup.module.scss";
+import styles from "./TokenInputPopup.module.scss";
 import {
   useTokenInputPopup,
   TokenInputPopupProps,
 } from "./hooks/useTokenInputPopup";
 
-const TokenInputPopup: React.FC<TokenInputPopupProps> = (props) => {
+const TokenInputPopup = (props: TokenInputPopupProps) => {
   const {
     popupState,
     xrpAmount,

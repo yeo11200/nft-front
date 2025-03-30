@@ -11,7 +11,7 @@ import SignUp from "./feat-component/SignUp/SignUp";
 import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
 import ScrollToTop from "./components/common/ScrollToTop";
-import { getSocketServer } from "./utils/xrpl-client";
+import { getSocketServer } from "@/utils/xrpl-client";
 import FriendList from "./feat-component/FriendList/FriendList";
 import {
   UIProvider,
