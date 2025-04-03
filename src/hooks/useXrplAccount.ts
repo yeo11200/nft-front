@@ -767,10 +767,6 @@ export const useXrplAccount = () => {
           throw new Error("XRPL 클라이언트가 초기화되지 않았습니다.");
         }
 
-        console.log(
-          "[useXrplAccount] 연결 상태 확인: ",
-          xrplClient.isConnected() ? "연결됨" : "연결 안됨"
-        );
         if (!xrplClient.isConnected()) {
           console.log("[useXrplAccount] XRPL에 연결 시도...");
           await xrplClient.connect();

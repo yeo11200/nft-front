@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { Toast } from "../components/common/Toast";
-import { Alert } from "../components/common/Alert";
-import { Confirm } from "../components/common/Confirm";
+import Alert from "../components/common/Alert";
+import Confirm from "../components/common/Confirm";
+import Toast from "../components/common/Toast";
 
 interface UIContextType {
   toast: (message: string, type?: "success" | "error" | "info") => void;

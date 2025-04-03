@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import styles from "./TransactionHistory.module.scss";
 import { useUI } from "../../contexts/UIContext";
 import { useSpinner } from "../../contexts/SpinnerContext";
-import { Transaction, useXrplAccount } from "../../hooks/useXrplAccount";
+import { Transaction, useXrplAccount } from "../../hooks";
 import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";
 import { useTransactionDetail } from "../../contexts/TransactionDetailContext";

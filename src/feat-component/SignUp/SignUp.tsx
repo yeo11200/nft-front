@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import styles from "./SignUp.module.scss";
-import { useXrplAccount } from "../../hooks/useXrplAccount";
+import { useXrplAccount } from "../../hooks";
 
 const SignUp = () => {
   const [nickname, setNickname] = useState("");

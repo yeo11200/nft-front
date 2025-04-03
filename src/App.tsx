@@ -6,19 +6,22 @@ import TicketVerifier from "./feat-component/TicketVerifier";
 import Main from "./feat-component/Main";
 import Wallet from "./feat-component/Wallet";
 import TransactionHistory from "./feat-component/TransactionHistory";
-import { UIProvider } from "./contexts/UIContext";
-import { SpeechProvider } from "./contexts/SpeechContext";
-import { SpinnerProvider } from "./contexts/SpinnerContext";
-import { CryptoPriceProvider } from "./contexts/CryptoPriceContext";
+
 import SignUp from "./feat-component/SignUp/SignUp";
 import SignUpComplete from "./feat-component/SignUpComplete";
 import Header from "./components/Header";
-import { TransactionDetailProvider } from "./contexts/TransactionDetailContext";
 import ScrollToTop from "./components/common/ScrollToTop";
-import { getSocketServer } from "./utils/xrpl-client";
+import { getSocketServer } from "@/utils/xrpl-client";
 import FriendList from "./feat-component/FriendList/FriendList";
-import { TokenInputProvider } from "./contexts/TokenInputContext";
-import { useXrplAccount } from "./hooks/useXrplAccount";
+import {
+  UIProvider,
+  SpinnerProvider,
+  CryptoPriceProvider,
+  TransactionDetailProvider,
+  TokenInputProvider,
+  SpeechProvider,
+} from "./contexts";
+import { useXrplAccount } from "./hooks";
 
 export type AccountResponse = {
   status: string;

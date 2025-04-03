@@ -3,7 +3,7 @@ import styles from "./Wallet.module.scss";
 import { useUI } from "../../contexts/UIContext";
 import { useCallback, useEffect, useState } from "react";
 import { AccountResponseDto } from "@/types/account/response.dto";
-import { useXrplAccount } from "../../hooks/useXrplAccount";
+import { useXrplAccount } from "../../hooks";
 import { useSpinner } from "../../contexts/SpinnerContext";
 import { useCryptoPrice } from "../../contexts/CryptoPriceContext";
 import { convertXrpToKrw } from "../../utils/common";

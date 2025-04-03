@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./FriendList.module.scss";
 import { checkInitialMatches } from "../../utils/initial-search";
-import { useXrplAccount } from "../../hooks/useXrplAccount";
+import { useXrplAccount } from "../../hooks";
 import { useUI } from "../../contexts/UIContext";
 import FriendDetailModal, { Friend } from "./components/FriendDetailModal";
 import { formatDateToKorean, getLast7Days } from "../../utils/common";

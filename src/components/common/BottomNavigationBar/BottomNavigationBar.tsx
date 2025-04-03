@@ -1,8 +1,7 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import styles from "./BottomNavigationBar.module.css";
+import styles from "./BottomNavigationBar.module.scss";
 
-const BottomNavigationBar: React.FC = () => {
+const BottomNavigationBar = () => {
   const pathname = window.location.pathname;
 
   // 현재 경로에 따라 활성화된 탭 결정
