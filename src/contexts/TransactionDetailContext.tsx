@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useCallback } from 'react';
-import { Transaction, useXrplAccount } from '../hooks/useXrplAccount';
+import { Transaction, useXrplAccount } from '../hooks';
 import TransactionDetail from '../components/TransactionDetail';
 
 interface TransactionDetailContextType {

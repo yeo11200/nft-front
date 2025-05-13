@@ -81,6 +81,11 @@ function calculateLatExecuted(txData: any): number {
 
 /**
  * WebSocket 메시지 핸들러
+ * XRPL 네트워크로부터 받은 메시지를 처리하는 함수
+ * 1. 잔액 변경 이벤트 처리 (XRP 입금)
+ * 2. 트랜잭션 이벤트 처리 (LAT 체결)
+ * 3. Escrow 관련 트랜잭션 처리
+ *
  * @param message - WebSocket에서 수신된 메시지
  * @param account - 감시할 XRPL 계정 주소
  */
@@ -93,8 +98,10 @@ function handleMessage(message: any, account: string): void {
   }
 
   // 1. 잔액 변경 이벤트 처리 (송금받은 경우만)
+  // AffectedNodes를 통해 계정의 잔액 변경을 감지
   if (data?.engine_result === "tesSUCCESS" && data?.meta?.AffectedNodes) {
     for (const node of data.meta.AffectedNodes) {
+      // AccountRoot 타입의 노드가 수정되었고, 해당 계정의 것인지 확인
       if (
         node.ModifiedNode?.LedgerEntryType === "AccountRoot" &&
         node.ModifiedNode.FinalFields?.Account === account
@@ -102,16 +109,19 @@ function handleMessage(message: any, account: string): void {
         const fields = node.ModifiedNode.FinalFields;
         const prevFields = node.ModifiedNode.PreviousFields || {};
 
+        // 이전 잔액과 새로운 잔액이 모두 있는 경우에만 처리
         if (prevFields.Balance && fields.Balance) {
           const oldBalance = parseInt(prevFields.Balance, 10);
           const newBalance = parseInt(fields.Balance, 10);
-          const balanceDiff = (newBalance - oldBalance) / 1_000_000; // XRP 단위로 변환
+          const balanceDiff = (newBalance - oldBalance) / 1_000_000; // XRP 단위로 변환 (drops -> XRP)
 
+          // 잔액이 증가한 경우만 처리 (입금)
           if (balanceDiff > 0) {
             console.log(
               `계정 ${account}의 잔액이 업데이트되었습니다: ${oldBalance} → ${newBalance} drops`
             );
 
+            // localStorage의 userInfo 업데이트
             const userInfo = localStorage.getItem("userInfo");
             if (userInfo) {
               const parsedInfo = JSON.parse(userInfo);
@@ -119,12 +129,14 @@ function handleMessage(message: any, account: string): void {
                 parsedInfo.balance = newBalance;
                 localStorage.setItem("userInfo", JSON.stringify(parsedInfo));
 
+                // 잔액 업데이트 이벤트 발생
                 window.dispatchEvent(
                   new CustomEvent("xrpl:balanceUpdate", {
                     detail: { address: account, balance: newBalance },
                   })
                 );
 
+                // 입금 알림 이벤트 발생
                 window.dispatchEvent(
                   new CustomEvent("xrpl:notification", {
                     detail: {
@@ -145,6 +157,7 @@ function handleMessage(message: any, account: string): void {
   }
 
   // 2. 트랜잭션 이벤트 처리 (LAT 체결 포함)
+  // 트랜잭션 타입이 아니거나 실패한 트랜잭션이면 처리하지 않음
   if (data.type !== "transaction") return;
   if (data.engine_result !== "tesSUCCESS" || !data.validated) return;
 
@@ -152,6 +165,7 @@ function handleMessage(message: any, account: string): void {
   let newBalance = "";
   const latAmount = calculateLatExecuted(data);
 
+  // AffectedNodes를 통해 계정의 잔액 변경 확인
   if (data.meta?.AffectedNodes) {
     for (const node of data.meta.AffectedNodes) {
       if (
@@ -165,14 +179,17 @@ function handleMessage(message: any, account: string): void {
     }
   }
 
+  // Payment 트랜잭션이고 해당 계정이 수신자인지 확인
   const isPayment = data.transaction?.TransactionType === "Payment";
   const isIncoming = isPayment && data.transaction.Destination === account;
 
+  // 계정이 영향을 받고, 잔액이 변경되었으며, 입금 트랜잭션인 경우
   if (isAffected && newBalance && isIncoming) {
     console.log(
       `계정 ${account}의 잔액이 업데이트되었습니다: ${newBalance} drops`
     );
 
+    // localStorage의 userInfo 업데이트
     const userInfo = localStorage.getItem("userInfo");
     if (userInfo) {
       const parsedInfo = JSON.parse(userInfo);
@@ -180,12 +197,14 @@ function handleMessage(message: any, account: string): void {
         parsedInfo.balance = newBalance;
         localStorage.setItem("userInfo", JSON.stringify(parsedInfo));
 
+        // 잔액 업데이트 이벤트 발생
         window.dispatchEvent(
           new CustomEvent("xrpl:balanceUpdate", {
             detail: { address: account, balance: newBalance },
           })
         );
 
+        // 입금 알림 이벤트 발생 (송신자 정보 포함)
         const amount = data.meta.delivered_amount || data.transaction.Amount;
         window.dispatchEvent(
           new CustomEvent("xrpl:notification", {
@@ -200,8 +219,22 @@ function handleMessage(message: any, account: string): void {
     }
   }
 
+  // LAT 체결이 있는 경우 로그 출력
   if (latAmount > 0) {
     console.log(`체결된 LAT 수량: ${latAmount}`);
+  }
+
+  // 3. Escrow 관련 트랜잭션 처리
+  // EscrowFinish, EscrowCancel, EscrowCreate 트랜잭션 감지
+  const tx = data.transaction;
+  if (
+    tx.TransactionType === "EscrowFinish" ||
+    tx.TransactionType === "EscrowCancel" ||
+    tx.TransactionType === "EscrowCreate"
+  ) {
+    if (account) {
+      // fetchTransactionHistory(account);
+    }
   }
 }
 

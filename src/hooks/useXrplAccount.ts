@@ -718,6 +718,7 @@ export const useXrplAccount = () => {
       console.log(`[useXrplAccount] 3글자 ISO 코드 사용: ${currencyCode}`);
       return currencyCode;
     }
+    
 
     // 이미 40자 16진수인 경우
     if (currencyCode.length === 40 && /^[0-9A-F]+$/i.test(currencyCode)) {

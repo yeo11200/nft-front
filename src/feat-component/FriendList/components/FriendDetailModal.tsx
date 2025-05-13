@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./FriendDetailModal.module.scss";
-import { useXrplAccount } from "../../../hooks/useXrplAccount";
+import { useXrplAccount } from "../../../hooks";
 import { formatDateToKorean } from "../../../utils/common";
 import { useUI } from "../../../contexts/UIContext";
 import { useSpinner } from "../../../contexts/SpinnerContext";
